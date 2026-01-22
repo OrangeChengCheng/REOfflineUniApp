@@ -1,7 +1,7 @@
 <!--
  * @Author: Lemon C
  * @Date: 2026-01-22 10:16:05
- * @LastEditTime: 2026-01-22 10:19:56
+ * @LastEditTime: 2026-01-22 15:53:57
 -->
 <template>
     <view class="content">
@@ -9,7 +9,8 @@
         <view class="text-area">
             <text class="title">{{ title }}</text>
         </view>
-        <view @click.stop="btnAction">点击我</view>
+        <view @click.stop="shouEngine">展示引擎</view>
+        <view @click.stop="downloadFile">下载文件</view>
     </view>
 </template>
 
@@ -17,22 +18,18 @@
 import { ref } from 'vue';
 const title = ref('Hello');
 
-const reModule = uni.requireNativePlugin('REUniPlugin-REModule');
-
-const btnAction = () => {
-    reModule.testAsyncFunc(
-        {
+const shouEngine = () => {
+    uni.$re.unipluginLog('shouEngine');
+    uni.$re
+        .realEngineRender({
             name: 'uni-app',
-            age: 12,
-        },
-        (ret: any) => {
-            uni.showToast({
-                title: '调用异步方法' + ret,
-                icon: 'none',
-            });
-        }
-    );
+        })
+        .then((result) => {
+            uni.$re.unipluginLog(JSON.stringify(result));
+        });
 };
+
+const downloadFile = () => {};
 </script>
 
 <style>

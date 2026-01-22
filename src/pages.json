@@ -8,9 +8,10 @@
         }
     ],
     "globalStyle": {
-        "navigationBarTextStyle": "black",
-        "navigationBarTitleText": "uni-app",
-        "navigationBarBackgroundColor": "#F8F8F8",
-        "backgroundColor": "#F8F8F8"
+        "navigationStyle": "custom",
+        "navigationBarTextStyle": "#1D2129",
+        "navigationBarTitleText": "黑洞引擎",
+        "navigationBarBackgroundColor": "#FFFFFF",
+        "backgroundColor": "#FFFFFF"
     }
 }
