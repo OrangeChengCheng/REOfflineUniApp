@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-23 14:42:45
- * @LastEditTime: 2026-01-22 15:44:10
+ * @LastEditTime: 2026-03-24 11:52:00
  */
 
 const RE_AppVersion = "2.0.1";
@@ -12,6 +12,7 @@ import { useDeviceStore } from '@/stores/device';
 import uniApi from '@/utils/uniApi';
 
 interface ApiMethods {
+    toPromise<T = any>(fn: (callback: (res: any) => void) => void): Promise<T>;
     url_base(url: string): string;
     time_compare(frontTime: Date, backTime: Date): string;
     time_To_IOSDate(timeStr: string): string;
@@ -25,6 +26,16 @@ interface ApiMethods {
 }
 
 const api: ApiMethods = {
+    // ============================
+    // 万能：回调转 Promise
+    // 所有 带有回调性质的函数都能封装
+    // ============================
+    toPromise<T = any>(fn: (callback: (res: any) => void) => void): Promise<T> {
+        return new Promise((resolve) => {
+            fn((res: any) => resolve(res));
+        });
+    },
+
     url_base: (url: string): string => {
         if (url.length <= 0) return "";
         url = url.trim();

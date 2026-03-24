@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-13 18:01:53
- * @LastEditTime: 2026-01-21 11:47:51
+ * @LastEditTime: 2026-03-24 12:20:25
  */
 
 
@@ -13,15 +13,29 @@ declare global {
     */
     interface Uni extends _Uni {
         $re: {
+            isNavivePlugin(): boolean;
             unipluginLog(log: string): void;
             realEngineRender(data: any): Promise<any>;
             registerAppMsg(onCallBack: (data: any) => void): Promise<void>;
             sendMsgUniToApp(data: any): void;
+            unzipFile(data: any, onCallBack: (data: any) => void): void;
+            saveUniFile(data: any, onCallBack: (data: any) => void): void;
+            useFileUniToApp(data: any, onCallBack: (data: any) => void): void;
+            getLocFileList(data: any, onCallBack: (data: any) => void): void;
+            delFile(data: any, onCallBack: (data: any) => void): void;
+            selFile(data: any, onCallBack: (data: any) => void): void;
+            showOfflineEngine(data: any, onCallBack: (data: any) => void): void;
+            dbQuery(data: any, onCallBack: (data: any) => void): void;
+            dbTableExist(data: any, onCallBack: (data: any) => void): void;
         }
         $service: {
             commonTimeout: number,
+            isSharedRoomExistService(params: any): Promise<any>;
+            getDataSetList(params: any): Promise<any>;
+            getSceneInfo(params: any): Promise<any>;
         };
         $tool: {
+            toPromise<T = any>(fn: (callback: (res: any) => void) => void): Promise<T>;
             update_data(): void;
             del_data(): void;
             getAppVersion(): string;

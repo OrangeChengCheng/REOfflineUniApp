@@ -1,22 +1,102 @@
 <!--
  * @Author: Lemon C
  * @Date: 2026-01-22 10:16:05
- * @LastEditTime: 2026-01-22 15:53:57
+ * @LastEditTime: 2026-03-24 15:46:24
 -->
 <template>
     <view class="content">
-        <image class="logo" src="/static/logo.png" />
-        <view class="text-area">
-            <text class="title">{{ title }}</text>
+        <view class="btn-area">
+            <view class="btn-line">
+                <el-button type="primary" @click.stop="shouEngine">展示引擎</el-button>
+                <el-button type="primary" @click.stop="downloadAndBindFile">下载文件</el-button>
+                <el-button type="primary" @click.stop="delAllFile">删除所有文件</el-button>
+            </view>
+            <view class="btn-line">
+                <el-button type="primary" @click.stop="getSavedFileList">获取文件列表</el-button>
+                <el-button type="primary" @click.stop="callNativeUnzip">解压文件</el-button>
+                <el-button type="primary" @click.stop="delFile">删除文件</el-button>
+            </view>
+            <view class="btn-line">
+                <el-button type="primary" @click.stop="getDoc">获取文件对象</el-button>
+                <el-button type="primary" @click.stop="selFile">选择文件</el-button>
+            </view>
+            <view class="btn-line">
+                <el-button type="primary" @click.stop="dbQuery(offlineFileList[0])">数据库查询</el-button>
+                <el-button type="primary" @click.stop="dbTableExist(offlineFileList[0])">查询表存在</el-button>
+            </view>
+            <view class="btn-line">
+                <el-button type="primary" @click.stop="getDataSetList(offlineFileList[0])">获取模型列表</el-button>
+                <el-button type="primary" @click.stop="getDataSetList(offlineFileList[1])">获取场景列表</el-button>
+            </view>
+            <view class="btn-line">
+                <el-button type="primary" @click.stop="getScene(offlineFileList[2])">获取场景信息</el-button>
+            </view>
         </view>
-        <view @click.stop="shouEngine">展示引擎</view>
-        <view @click.stop="downloadFile">下载文件</view>
+        <view class="progress-area">
+            <progress :percent="percentage" show-info stroke-width="3" />
+        </view>
+        <view class="file-area">
+            <view class="file-item" v-for="item in offlineFileList">
+                <view class="file-item-left">
+                    <text class="item-text">文件名：{{ item.fileName }}</text>
+                    <text class="item-text">类型：{{ item.type }}</text>
+                </view>
+                <view class="file-item-right">
+                    <el-button type="primary" @click.stop="showFileEngine(item)">查看资源</el-button>
+                </view>
+            </view>
+        </view>
+        <view class="info-area">
+            {{ fileStr_computed }}
+        </view>
     </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed, nextTick } from 'vue';
+import { useFileStore } from '@/stores/file';
+
+const file_store = useFileStore();
+
 const title = ref('Hello');
+const offlineFileList = ref<any[]>([
+    {
+        fileName: '[model]药店-BIM案例模型.rvt',
+        type: 1,
+        filePath: 'storage/emulated/0/Android/data/com.realengine.androidofflineapp/files/REOfflineDoc/[model]药店-BIM案例模型.rvt',
+        id: '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee',
+    },
+    {
+        fileName: '[scene]离线场景',
+        type: 2,
+        filePath: 'storage/emulated/0/Android/data/com.realengine.androidofflineapp/files/REOfflineDoc/[scene]离线场景',
+        id: '3a1ff815-fd2a-39d0-db7e-5d7c1bdadbb8',
+        subId: ['3a1dac58-d288-f55b-e902-ea8b7d573a5e', '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee'],
+    },
+    {
+        fileName: '[scene_lib]离线场景',
+        type: 2,
+        filePath: 'storage/emulated/0/Android/data/com.realengine.androidofflineapp/files/REOfflineDoc/[scene_lib]离线场景',
+        id: '3a1ff815-fd2a-39d0-db7e-5d7c1bdadbb8',
+        subId: ['3a1dac58-d288-f55b-e902-ea8b7d573a5e', '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee'],
+    },
+]);
+const percentage = ref(0);
+const fileList = ref({});
+const filePath_temp = ref('');
+const filePath_save = ref('');
+const fileList_loc = ref({});
+const fileList_apploc = ref([]);
+
+const fileStr_computed = computed(() => {
+    return `文件名称：${FILE_META.customName}
+    \n 文件下载路径：${FILE_META.downloadUrl}
+    \n 文件下载的临时路径：${filePath_temp.value}
+    \n 文件沙盒保存路径：${filePath_save.value}
+    \n 文件列表：${JSON.stringify(fileList.value)}
+    \n 文件映射表：${JSON.stringify(fileList_loc.value)}
+    \n app文件列表：${JSON.stringify(fileList_apploc.value)}`;
+});
 
 const shouEngine = () => {
     uni.$re.unipluginLog('shouEngine');
@@ -29,33 +109,518 @@ const shouEngine = () => {
         });
 };
 
-const downloadFile = () => {};
+const getDoc = () => {
+    const docObj = uni.getFileSystemManager();
+    uni.showModal({
+        title: '文件对象',
+        content: JSON.stringify(docObj),
+    });
+};
+
+const delAllFile = () => {
+    uni.getSavedFileList({
+        success: function (res) {
+            if (res.fileList.length > 0) {
+                res.fileList.forEach((element) => {
+                    uni.removeSavedFile({
+                        filePath: element.filePath,
+                        success: function (res) {
+                            uni.showToast({ title: '删除成功', icon: 'none' });
+                            fileList.value = [];
+                            // 清空映射表
+                            uni.removeStorageSync('file_bind_map');
+                            fileList_loc.value = {};
+                        },
+                    });
+                });
+            } else {
+                uni.showToast({ title: '暂无文件可删除', icon: 'none' });
+            }
+        },
+    });
+
+    uni.$re.delFile({}, (res: any) => {
+        uni.showModal({
+            title: '删除结果',
+            content: JSON.stringify(res),
+        });
+    });
+};
+
+const delFile = () => {
+    uni.removeSavedFile({
+        filePath: '_doc/uniapp_save/17732974828590',
+        success: function (res) {
+            uni.showModal({
+                title: '删除成功',
+                content: JSON.stringify(res),
+            });
+        },
+        fail: function name(err) {
+            uni.showModal({
+                title: '删除失败',
+                content: JSON.stringify(err),
+            });
+        },
+    });
+};
+
+// --------------- 核心：定义文件的「唯一标识」和「元数据」 ---------------
+// 你可以自定义这个对象，作为下载文件的“身份标签”
+// const FILE_META = {
+//     fileId: '666',
+//     // 自定义文件名称（用于你识别，和保存后的沙盒文件名无关）
+//     customName: 'BlackHole_Engine_SDK_v3.2.0.3559.zip',
+//     // 下载URL（唯一标识，确保和其他文件区分）
+//     downloadUrl:
+//         'https://developer.bjblackhole.com/api/developercenter/download/Sources/2026_01_09_16_42_38_3a1eb418-dcd6-c449-4697-3185fe76fcec_3a049d33-017c-c541-7c08-bc4bd5e7524a_BlackHole%20Engine%20SDK_v3.2.0.3559.zip',
+// };
+const FILE_META = {
+    fileId: '666',
+    // 自定义文件名称（用于你识别，和保存后的沙盒文件名无关）
+    customName: '[model]药店-BIM案例模型.rvt.zip',
+    // 下载URL（唯一标识，确保和其他文件区分）
+    downloadUrl: 'https://demo.bjblackhole.com/BlackHole3.0/app/AppRes/[model]药店-BIM案例模型.rvt.zip',
+};
+
+// --------------- 新增核心：下载前校验本地文件是否存在 ---------------
+/**
+ * 校验本地是否存在对应fileId的文件（唯一标识匹配）
+ * @returns Promise<boolean> true=存在，false=不存在
+ */
+const checkLocalFileExist = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+        // 1. 读取本地映射表
+        const fileBindMap = uni.getStorageSync('file_bind_map') || {};
+        fileList_loc.value = fileBindMap;
+
+        // 2. 根据fileId查找对应的沙盒路径
+        const bindInfo = fileBindMap[FILE_META.fileId];
+        if (!bindInfo) {
+            console.log('🔍 本地映射表无该文件：', FILE_META.fileId);
+            resolve(false);
+            return;
+        }
+
+        // 3. 验证沙盒路径对应的文件是否真的存在（避免映射表有但文件已被清理）
+        uni.getSavedFileInfo({
+            filePath: bindInfo.savedFilePath,
+            success: () => {
+                console.log('✅ 本地存在该文件：', bindInfo.savedFilePath);
+                resolve(true);
+            },
+            fail: () => {
+                // 文件已被清理，删除映射表中的无效记录
+                delete fileBindMap[FILE_META.fileId];
+                uni.setStorageSync('file_bind_map', fileBindMap);
+                fileList_loc.value = fileBindMap;
+                console.log('🔍 映射表有记录，但文件已被清理');
+                resolve(false);
+            },
+        });
+    });
+};
+
+/**
+ * 删除本地对应fileId的旧文件（覆盖前清理）
+ */
+const deleteOldFile = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+        const fileBindMap = uni.getStorageSync('file_bind_map') || {};
+        const bindInfo = fileBindMap[FILE_META.fileId];
+
+        if (!bindInfo) {
+            resolve(true);
+            return;
+        }
+
+        // 删除沙盒文件
+        uni.removeSavedFile({
+            filePath: bindInfo.savedFilePath,
+            success: () => {
+                // 删除映射表中的旧记录
+                delete fileBindMap[FILE_META.fileId];
+                uni.setStorageSync('file_bind_map', fileBindMap);
+                fileList_loc.value = fileBindMap;
+                console.log('🗑️ 已删除旧文件：', bindInfo.savedFilePath);
+                resolve(true);
+            },
+            fail: (err) => {
+                console.error('❌ 删除旧文件失败：', err);
+                resolve(false);
+            },
+        });
+    });
+};
+
+// --------------- 核心函数：下载 + 保存 + 建立对应关系（整合校验逻辑） ---------------
+const downloadAndBindFile = async () => {
+    // 重置进度和路径
+    percentage.value = 0;
+    filePath_temp.value = '';
+    filePath_save.value = '';
+
+    try {
+        // 1. 前置校验：本地是否有对应文件
+        const fileExist = await checkLocalFileExist();
+
+        // 2. 如果存在，先删除旧文件（覆盖逻辑）
+        if (fileExist) {
+            uni.showLoading({ title: '清理旧文件...' });
+            const deleteSuccess = await deleteOldFile();
+            uni.hideLoading();
+
+            if (!deleteSuccess) {
+                uni.showToast({ title: '清理旧文件失败', icon: 'none' });
+                return;
+            }
+            uni.showToast({ title: '旧文件已清理，开始下载新版本', icon: 'success' });
+        }
+
+        // 3. 执行下载（官网 API）
+        const downloadTask = uni.downloadFile({
+            url: FILE_META.downloadUrl,
+            success: (downloadRes) => {
+                if (downloadRes.statusCode === 200) {
+                    const tempFilePath = downloadRes.tempFilePath;
+                    console.log(`📥 下载完成：临时路径 = ${tempFilePath}`);
+                    filePath_temp.value = tempFilePath;
+
+                    const params = {
+                        uniDownloadTempPath: tempFilePath,
+                    };
+                    uni.$re.saveUniFile(params, (res: any) => {
+                        uni.showModal({
+                            title: '保存结果',
+                            content: JSON.stringify(res),
+                        });
+                    });
+
+                    // // 4. 保存到沙盒
+                    // uni.saveFile({
+                    //     tempFilePath: tempFilePath,
+                    //     success: (saveRes) => {
+                    //         const savedFilePath = saveRes.savedFilePath;
+                    //         console.log(`📌 保存完成：沙盒路径 = ${savedFilePath}`);
+                    //         filePath_save.value = savedFilePath;
+
+                    //         // 5. 建立映射关系
+                    //         bindFileMeta(savedFilePath);
+                    //         uni.showToast({ title: '下载并保存成功', icon: 'success' });
+                    //     },
+                    //     fail: (err) => {
+                    //         uni.showToast({ title: '保存失败', icon: 'none' });
+                    //         console.error('❌ 保存失败：', err);
+                    //     },
+                    // });
+                } else {
+                    uni.showToast({ title: `下载失败：${downloadRes.statusCode}`, icon: 'none' });
+                }
+            },
+            fail: (err) => {
+                uni.showToast({ title: '下载失败，请检查网络', icon: 'none' });
+                console.error('❌ 下载失败：', err);
+            },
+        });
+
+        // 进度监听
+        downloadTask.onProgressUpdate(async (res) => {
+            percentage.value = res.progress;
+            await nextTick();
+        });
+    } catch (err) {
+        console.error('❌ 前置校验异常：', err);
+        uni.showToast({ title: '校验失败，请重试', icon: 'none' });
+    }
+};
+
+// --------------- 核心：记录映射关系 ---------------
+const bindFileMeta = (savedFilePath: string) => {
+    const fileBindMap = uni.getStorageSync('file_bind_map') || {};
+
+    // 建立对应关系（fileId 作为唯一key）
+    fileBindMap[FILE_META.fileId] = {
+        fileId: FILE_META.fileId,
+        savedFilePath: savedFilePath,
+        bindTime: new Date().getTime(),
+        customName: FILE_META.customName,
+        downloadUrl: FILE_META.downloadUrl,
+    };
+
+    uni.setStorageSync('file_bind_map', fileBindMap);
+    fileList_loc.value = fileBindMap;
+    console.log(`✅ 对应关系已建立：${FILE_META.fileId} → ${savedFilePath}`);
+
+    getSavedFileList(); //更新
+};
+
+/**
+ * 获取已保存的文件列表
+ */
+const getSavedFileList = () => {
+    uni.getSavedFileList({
+        success: (res) => {
+            console.log('📋 已保存文件列表：', res.fileList);
+            fileList.value = res.fileList;
+        },
+        fail: (err) => {
+            console.error('❌ 获取文件列表失败：', err);
+            uni.showToast({ title: '获取列表失败', icon: 'none' });
+        },
+    });
+
+    uni.$re.getLocFileList({}, (res: any) => {
+        uni.showModal({
+            title: '文件列表',
+            content: JSON.stringify(res),
+        });
+        fileList_apploc.value = res.fileList;
+    });
+};
+
+/**
+ * 调用安卓原生解压接口
+ */
+const callNativeUnzip = () => {
+    // const fileBindMap = uni.getStorageSync('file_bind_map') || {};
+    // const bindInfo = fileBindMap[FILE_META.fileId];
+
+    // if (!bindInfo) {
+    //     uni.showToast({ title: '文件获取失败', icon: 'none' });
+    //     return;
+    // }
+    if (!fileList_apploc.value.length) {
+        uni.showToast({ title: '文件获取失败', icon: 'none' });
+        return;
+    }
+
+    const file: any = fileList_apploc.value[0];
+
+    const unzipParams = {
+        filePath: file.filePath,
+        fileName: file.fileName,
+    };
+
+    console.log('📤 向原生发送解压请求：', unzipParams);
+
+    // 2. 调用原生通信接口（基于你已有的uni.$re通道）
+    uni.$re.unzipFile(unzipParams, (res: any) => {
+        uni.showModal({
+            title: '解压结果',
+            content: JSON.stringify(res),
+        });
+    });
+
+    // 自定义原生方法名，需和安卓端一致
+    // uni.$re.unzipFile(unzipParams); // 自定义原生方法名，需和安卓端一致
+    // .then((result: any) => {
+    //     // 3. 接收原生解压成功回调
+    //     console.log('✅ 原生解压成功：', result);
+    //     uni.showModal({
+    //         title: '解压成功',
+    //         content: `解压路径：${result.unzipDir}\n解压文件数：${result.fileCount}`,
+    //         showCancel: false,
+    //     });
+    // })
+    // .catch((error: any) => {
+    //     // 4. 接收原生解压失败回调
+    //     console.error('❌ 原生解压失败：', error);
+    //     uni.showToast({
+    //         title: `解压失败：${error.msg}`,
+    //         icon: 'none',
+    //         duration: 3000,
+    //     });
+    // });
+};
+
+const selFile = () => {
+    uni.$re.selFile({}, (res: any) => {
+        uni.showModal({
+            title: '获取结果',
+            content: JSON.stringify(res),
+        });
+    });
+};
+
+const showFileEngine = (item: any) => {
+    file_store.fileName = item.fileName;
+    const params = { dataSetIds: item.type == 2 ? item.subId : [item.id] };
+    uni.$service.getDataSetList(params).then((res: any) => {
+        const param_t = { filePath: `${file_store.rootPath}/${file_store.fileName}`, dataSetList: res, shareType: item.type, sceneId: item.id };
+        uni.$re.showOfflineEngine(param_t, (res: any) => {});
+    });
+};
+
+const dbQuery = (item: any) => {
+    const param = {
+        dbPath: item.filePath + '/data/' + item.id + '.db',
+        sql: `SELECT HostFileName, FileSuffix FROM "${item.id.replace(/-/g, '') + '_filename'}";`, //不能使用replaceAll,app端异常
+    };
+    uni.$re.dbQuery(param, (res: any) => {
+        uni.showModal({
+            title: '获取结果',
+            content: JSON.stringify(res),
+        });
+    });
+};
+const dbTableExist = (item: any) => {
+    // const param = {
+    //     dbPath: item.filePath + '/data/' + item.id + '.db',
+    //     tableName: item.id.replace(/-/g, '') + '_filename', //不能使用replaceAll,app端异常
+    // };
+    // uni.$re.dbTableExist(param, (res: any) => {
+    //     uni.showModal({
+    //         title: '获取结果',
+    //         content: JSON.stringify(res),
+    //     });
+    // });
+
+    let params = { dataSetId: item.id };
+    uni.$service.isSharedRoomExistService(params).then((res: any) => {
+        uni.showModal({
+            title: '获取结果',
+            content: JSON.stringify(res),
+        });
+    });
+};
+
+const getDataSetList = (item: any) => {
+    file_store.fileName = item.fileName;
+    let params = { dataSetIds: item.type == 2 ? item.subId : [item.id] };
+    uni.$service.getDataSetList(params).then((res: any) => {
+        uni.showModal({
+            title: '获取结果',
+            content: JSON.stringify(res),
+        });
+    });
+};
+
+
+const getScene = async (item: any) => {
+    file_store.fileName = item.fileName;
+
+    // 获取场景信息
+    const res_1 = await uni.$service.getSceneInfo(item.id);
+    uni.showModal({
+        title: '获取结果',
+        content: JSON.stringify(res_1),
+    });
+
+    // let params = { dataSetIds: item.type == 2 ? item.subId : [item.id] };
+    // uni.$service.getDataSetList(params).then((res: any) => {
+    //     uni.showModal({
+    //         title: '获取结果',
+    //         content: JSON.stringify(res),
+    //     });
+    // });
+};
 </script>
 
-<style>
+<style lang="scss" scoped>
 .content {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
     display: flex;
     flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    .btn-area {
+        position: relative;
+        margin-top: 50px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .btn-line {
+        position: relative;
+        width: 100%;
+        height: 40px;
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+.progress-area {
+    position: relative;
+    margin-top: 30px;
+    width: 100%;
+    height: 30px;
+    display: flex;
     align-items: center;
     justify-content: center;
+
+    progress {
+        position: relative;
+        width: 80%;
+    }
 }
 
-.logo {
-    height: 200rpx;
-    width: 200rpx;
-    margin-top: 200rpx;
-    margin-left: auto;
-    margin-right: auto;
-    margin-bottom: 50rpx;
-}
-
-.text-area {
+.file-area {
+    position: relative;
+    width: 100%;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+
+    .file-item {
+        position: relative;
+        margin-top: 30px;
+        width: 100%;
+        height: 100px;
+        display: flex;
+        border-radius: 8px;
+        border: 1px solid #dddddd;
+        padding: 0 15px;
+        box-sizing: border-box;
+        overflow: hidden;
+
+        .file-item-left {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            flex: 1;
+            overflow: hidden;
+
+            .item-text {
+                position: relative;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-size: 15px;
+            }
+        }
+
+        .file-item-right {
+            position: relative;
+            display: flex;
+            width: 100px;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+    }
 }
 
-.title {
-    font-size: 36rpx;
-    color: #8f8f94;
+.info-area {
+    position: relative;
+    margin-top: 30px;
+    display: flex;
+    width: 100%;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow-wrap: break-word;
+    box-sizing: border-box;
+    padding: 0 20px;
+    font-size: 14px;
 }
 </style>
