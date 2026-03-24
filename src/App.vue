@@ -1,7 +1,7 @@
 <!--
  * @Author: Lemon C
  * @Date: 2026-01-22 10:16:05
- * @LastEditTime: 2026-01-22 15:36:20
+ * @LastEditTime: 2026-03-11 16:18:23
 -->
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app';
@@ -44,5 +44,14 @@ body {
     -moz-osx-font-smoothing: grayscale;
     width: 100vw;
     height: 100vh;
+}
+:root {
+    --color-white: #ffffff;
+    --color-main-bg: #f9f9f9;
+    --color-main-blue: #0052d9;
+    --color-main-black: #1d2129;
+    --color-main-gray: #86909c;
+    --animation-transform-style: transform 0.3s linear;
+    --animation-opacity-style: opacity 0.5s ease-in-out;
 }
 </style>
