@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2026-03-20 11:31:20
- * @LastEditTime: 2026-03-24 17:59:53
+ * @LastEditTime: 2026-04-07 18:06:34
  */
 
 import { useFileStore } from '@/stores/file';
@@ -52,11 +52,7 @@ function createApiHandler(
 //     async function 接口名(data: any) {
 //         // 核心逻辑
 //         // 直接 return 你的 ResponseData 即可
-//         return {
-//             data: {},
-//             isSuccess: true,
-//             errMsg: "",
-//         };
+//         return { data: {}, isSuccess: true, errMsg: "", };
 //     }
 // );
 
@@ -91,59 +87,266 @@ export const dataSet_v3_viewDataSetModel = createApiHandler(
     ["dataSetIds"],
     async function dataSet_v3_viewDataSetModel(data) {
         const file_store = useFileStore();
-        const filePath = `${file_store.rootPath}/${file_store.fileName}/res`;
+        const fileRootPath = `${file_store.rootPath}/${file_store.fileName}`;
+        const filePath_res = `${fileRootPath}/res`;
 
-        const res: any = uni.$tool.toPromise((cb: any) => uni.$re.useFileUniToApp({ type: "getAllSubFileList", data: { filePath } }, cb));
-        if (!res.data) return { data: null, isSuccess: false, errMsg: "", };
+        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.useFileUniToApp({ type: "getAllSubFileList", data: { filePath: filePath_res } }, cb));
+        if (!res_folder.data) return { data: null, isSuccess: false, errMsg: "", };
 
-        const fileList = res.data;
+        const fileList = res_folder.data;
+        // 区分场景资源和单模型资源类型
         // 先找出 res 下所有文件夹
         const allFolders = fileList.filter((item: any) => item.isDirectory);
-        // 判断是否存在「文件夹名 = dataSetId」的匹配
-        const hasDataSetIdFolder = allFolders.some((folder: any) =>
+        // 判断是否存在「文件夹名 = dataSetId」的匹配, 如果存在和数据集id相同的文件夹，代表文件是场景类型
+        const isScene = allFolders.some((folder: any) =>
             data.dataSetIds.includes(folder.fileName)
         );
         // 遍历每个dataSetId进行匹配
         const resultList: any[] = [];
-        for (const dataSetId of data.dataSetIds) {
-            const matchResult: any = {
-                resId: dataSetId.replace(/-/g, ""),
-                dataSetId,
-                dataSetType: 0,
-                coordinatesConfig: {
-                    coordinatesType: "None",
-                    coordinates: "",
-                    coordinatesPoint: null,
-                    basePointType: null,
-                    basePoint: "0,0,0",
-                    northAngle: "0",
-                },
-                status: 10,
-                resourcesAddress: "",
-                context: "",
-                scale: "1.0 1.0 1.0",
-                rotate: "0.0 0.0 0.0 1.0",
-                translation: "0.0 0.0 0.0",
-                readonlyCoordinate: false,
-            };
-            // 场景1：res下是散装文件（无自文件夹）→ res目录本身就是dataSetId对应的文件夹
-            if (!hasDataSetIdFolder) {
-                matchResult.resourcesAddress = filePath;
+        // 单文件数据集类型
+        if (!isScene) {
+            for (const dataSetId of data.dataSetIds) {
+                const matchResult: any = {
+                    resId: dataSetId.replace(/-/g, ""),
+                    dataSetId,
+                    dataSetType: 0,
+                    coordinatesConfig: {
+                        coordinatesType: "None",
+                        coordinates: "",
+                        coordinatesPoint: null,
+                        basePointType: null,
+                        basePoint: "0,0,0",
+                        northAngle: "0",
+                    },
+                    status: 10,
+                    resourcesAddress: "",
+                    context: "",
+                    scale: "1.0 1.0 1.0",
+                    rotate: "0.0 0.0 0.0 1.0",
+                    translation: "0.0 0.0 0.0",
+                    readonlyCoordinate: false,
+                };
+                // 获取本地资源链接
+                // 场景1：res下是散装文件（无自文件夹）→ res目录本身就是dataSetId对应的文件夹
+                matchResult.resourcesAddress = filePath_res;
+
+                // 获取项目信息
+                const dbPath = `${fileRootPath}/data/${dataSetId}.db`;
+                const sql_proj = `SELECT * FROM Project`;
+                const res_proj: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_proj }, cb));
+                if (!res_proj.data) return { data: null, isSuccess: false, errMsg: "", };
+
+                const { ProjCatalog } = res_proj.data[0];
+                const dataSetType = ProjCatalog; // 获取数据集类型
+                matchResult.dataSetType = dataSetType;
+
+                // bim/倾斜摄影/点云
+                if (dataSetType == 0 || dataSetType == 11 || dataSetType == 15) {
+                    // 获取坐标信息
+                    const tableName = { 0: 'AC_Bim_TreeNode', 11: 'AC_Osgb_TreeNode', 15: 'AC_PointCloud_TreeNode' }[dataSetType as 0 | 11 | 15];
+                    const sql_coord = `SELECT * FROM ${tableName} WHERE Id = "${dataSetId}";`;
+                    const res_coord: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_coord }, cb));
+                    if (!res_coord.data) return { data: null, isSuccess: false, errMsg: "", };
+
+                    const { CoordinatesConfig, CoordinatesDefault } = res_coord.data[0];
+                    if (CoordinatesConfig) {
+                        const CoordinatesDefault_json = JSON.parse(CoordinatesDefault);
+                        matchResult.coordinatesConfig.coordinates = CoordinatesDefault_json.Coordinates;
+                        matchResult.coordinatesConfig.basePoint = CoordinatesDefault_json.BasePoint;
+                        matchResult.coordinatesConfig.northAngle = CoordinatesDefault_json.NorthAngle;
+                        matchResult.coordinatesConfig.coordinatesType = CoordinatesDefault_json.CoordinatesType;
+                        matchResult.coordinatesConfig.coordinatesPoint = CoordinatesDefault_json.CoordinatesPoint;
+                        matchResult.coordinatesConfig.basePointType = CoordinatesDefault_json.BasePointType;
+                    } else if (!CoordinatesDefault) {
+                        matchResult.coordinatesConfig.coordinatesType = "None";
+                    } else {
+                        const CoordinatesDefault_json = JSON.parse(CoordinatesDefault);
+                        matchResult.coordinatesConfig.coordinates = CoordinatesDefault_json.Coordinates;
+                        matchResult.coordinatesConfig.basePoint = CoordinatesDefault_json.BasePoint;
+                        matchResult.coordinatesConfig.northAngle = CoordinatesDefault_json.NorthAngle;
+                        if (!CoordinatesDefault_json.Coordinates.length) {
+                            matchResult.coordinatesConfig.coordinatesType = "None";
+                        } else if (CoordinatesDefault_json.Coordinates.startsWith("EPSG")) {
+                            matchResult.coordinatesConfig.coordinatesType = "EPSG";
+                        } else {
+                            matchResult.coordinatesConfig.coordinatesType = "WKT";
+                        }
+                    }
+                }
+                // wmts地图/遥感影像/单文件矢量
+                else if (dataSetType == 10 || dataSetType == 13 || dataSetType == 20) {
+                    // 获取坐标信息
+                    const tableName = { 10: 'AC_Wmts_TreeNode', 13: 'AC_Rs_TreeNode', 20: 'AC_Vector_TreeNode' }[dataSetType as 10 | 13 | 20];
+                    const sql_coord = `SELECT * FROM ${tableName} WHERE Id = "${dataSetId}";`;
+                    const res_coord: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_coord }, cb));
+                    if (!res_coord.data) return { data: null, isSuccess: false, errMsg: "", };
+
+                    const { CoordinatesDefault } = res_coord.data[0];
+                    if (!CoordinatesDefault) {
+                        matchResult.coordinatesConfig.coordinatesType = "None";
+                    } else {
+                        const CoordinatesDefault_json = JSON.parse(CoordinatesDefault);
+                        matchResult.coordinatesConfig.coordinates = CoordinatesDefault_json.Coordinates;
+                        if (!CoordinatesDefault_json.Coordinates.length) {
+                            matchResult.coordinatesConfig.coordinatesType = "None";
+                        } else if (CoordinatesDefault_json.Coordinates.startsWith("EPSG")) {
+                            matchResult.coordinatesConfig.coordinatesType = "EPSG";
+                        } else {
+                            matchResult.coordinatesConfig.coordinatesType = "WKT";
+                        }
+                    }
+                }
+                resultList.push(matchResult);
             }
-            // 场景2：res下有子文件夹 → 匹配名称等于dataSetId的文件夹 
-            else {
-                // 找到名称等于dataSetId的文件夹
+        }
+        // 场景类型
+        else {
+            // 获取场景数据库文件
+            const res_sceneDBFile: any = await uni.$tool.toPromise((cb: any) => uni.$re.file_getChildBySuffix({ filePath: `${fileRootPath}/data`, suffix: ".db" }, cb));
+            if (!res_sceneDBFile.data) return { data: null, isSuccess: false, errMsg: "", };
+
+            const { filePath } = res_sceneDBFile.data[0];
+            const dbPath_scene = filePath;
+
+            // 获取场景树信息
+            const sql_sceneTreeNode = `SELECT * FROM AC_Scene_TreeNode WHERE NodeType = 2`;
+            const res_sceneTreeNode: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath_scene, sql: sql_sceneTreeNode }, cb));
+            if (!res_sceneTreeNode.data) return { data: null, isSuccess: false, errMsg: "", };
+            const sceneTreeNode = res_sceneTreeNode.data;
+
+            // 遍历获取信息
+            for (const dataSetId of data.dataSetIds) {
+                const matchResult: any = {
+                    resId: dataSetId.replace(/-/g, ""),
+                    dataSetId,
+                    dataSetType: 0,
+                    coordinatesConfig: {
+                        coordinatesType: "None",
+                        coordinates: "",
+                        coordinatesPoint: null,
+                        basePointType: null,
+                        basePoint: "0,0,0",
+                        northAngle: "0",
+                    },
+                    status: 10,
+                    resourcesAddress: "",
+                    context: "",
+                    scale: "1.0 1.0 1.0",
+                    rotate: "0.0 0.0 0.0 1.0",
+                    translation: "0.0 0.0 0.0",
+                    readonlyCoordinate: false,
+                };
+                // 获取本地资源链接
+                // 场景2：res下有子文件夹 → 匹配名称等于dataSetId的文件夹 
                 const targetFolder = fileList.find((item: any) =>
                     item.isDirectory && item.fileName === dataSetId
                 );
                 if (targetFolder) {
                     matchResult.resourcesAddress = targetFolder.filePath;
                 }
-            }
-            resultList.push(matchResult);
-        }
+                
+                // 获取资源类型
+                const treeNodeRes = sceneTreeNode.find((el: any) => el.MetadataNodeId == dataSetId || el.ParentId == dataSetId);
+                const dataSetType = treeNodeRes.MetadataNodeType; // 获取数据集类型
+                matchResult.dataSetType = dataSetType;
 
-        return { data: resultList, isSuccess: res.success, errMsg: "", };
+                // bim/倾斜摄影/点云
+                if (dataSetType == 0 || dataSetType == 11 || dataSetType == 15) {
+                    // 获取坐标信息
+                    const dbPath_subFile = `${fileRootPath}/data/${dataSetId}/${dataSetId}.db`;
+                    const tableName = { 0: 'AC_Bim_TreeNode', 11: 'AC_Osgb_TreeNode', 15: 'AC_PointCloud_TreeNode' }[dataSetType as 0 | 11 | 15];
+                    const sql_coord = `SELECT * FROM ${tableName} WHERE Id = "${dataSetId}";`;
+                    const res_coord: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath_subFile, sql: sql_coord }, cb));
+                    if (!res_coord.data) return { data: null, isSuccess: false, errMsg: "", };
+
+                    const { CoordinatesConfig, CoordinatesDefault } = res_coord.data[0];
+                    if (CoordinatesConfig) {
+                        matchResult.coordinatesConfig = JSON.parse(CoordinatesConfig);
+                    } else if (!CoordinatesDefault) {
+                        matchResult.coordinatesConfig.coordinatesType = "None";
+                    } else {
+                        const CoordinatesDefault_json = JSON.parse(CoordinatesDefault);
+                        matchResult.coordinatesConfig.coordinates = CoordinatesDefault_json.Coordinates;
+                        matchResult.coordinatesConfig.basePoint = CoordinatesDefault_json.BasePoint;
+                        matchResult.coordinatesConfig.northAngle = CoordinatesDefault_json.NorthAngle;
+                        if (!CoordinatesDefault_json.Coordinates.length) {
+                            matchResult.coordinatesConfig.coordinatesType = "None";
+                        } else if (CoordinatesDefault_json.Coordinates.startsWith("EPSG")) {
+                            matchResult.coordinatesConfig.coordinatesType = "EPSG";
+                        } else {
+                            matchResult.coordinatesConfig.coordinatesType = "WKT";
+                        }
+                    }
+                }
+                // wmts地图/遥感影像
+                else if (dataSetType == 10 || dataSetType == 13) {
+                    // 获取坐标信息
+                    const dbPath_subFile = `${fileRootPath}/data/${dataSetId}/${dataSetId}.db`;
+                    const tableName = { 10: 'AC_Wmts_TreeNode', 13: 'AC_Rs_TreeNode' }[dataSetType as 10 | 13];
+                    const sql_coord = `SELECT * FROM ${tableName} WHERE Id = "${dataSetId}";`;
+                    const res_coord: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath_subFile, sql: sql_coord }, cb));
+                    if (!res_coord.data) return { data: null, isSuccess: false, errMsg: "", };
+
+                    const { CoordinatesDefault } = res_coord.data[0];
+                    if (!CoordinatesDefault) {
+                        matchResult.coordinatesConfig.coordinatesType = "None";
+                    } else {
+                        const CoordinatesDefault_json = JSON.parse(CoordinatesDefault);
+                        matchResult.coordinatesConfig.coordinates = CoordinatesDefault_json.Coordinates;
+                        if (!CoordinatesDefault_json.Coordinates.length) {
+                            matchResult.coordinatesConfig.coordinatesType = "None";
+                        } else if (CoordinatesDefault_json.Coordinates.startsWith("EPSG")) {
+                            matchResult.coordinatesConfig.coordinatesType = "EPSG";
+                        } else {
+                            matchResult.coordinatesConfig.coordinatesType = "WKT";
+                        }
+                    }
+                }
+                // 场景矢量
+                else if (dataSetType == 22) {
+                    // 获取场景矢量信息
+                    const sql_sceneShp = `SELECT * FROM AC_Scene_Vector WHERE TreeNodeId = "${dataSetId}";`;
+                    const res_sceneShp: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath_scene, sql: sql_sceneShp }, cb));
+                    if (!res_sceneShp.data) return { data: null, isSuccess: false, errMsg: "", };
+
+                    const { MetaData } = res_sceneShp.data[0];
+                    if (MetaData) {
+                        const MetaData_json = JSON.parse(MetaData);
+                        matchResult.coordinatesConfig.coordinates = MetaData_json.ProjInfo;
+                        if (!MetaData_json.ProjInfo) {
+                            matchResult.coordinatesConfig.coordinatesType = "None";
+                        } else if (MetaData_json.ProjInfo.startsWith("EPSG")) {
+                            matchResult.coordinatesConfig.coordinatesType = "EPSG";
+                        } else {
+                            matchResult.coordinatesConfig.coordinatesType = "WKT";
+                        }
+                    } else {
+                        matchResult.coordinatesConfig.coordinatesType = "None";
+                    }
+
+                }
+                // 场景CAD
+                else if (dataSetType == 21) {
+                    // 获取场景CAD信息
+                    const sql_sceneCADShp = `SELECT * FROM AC_Scene_Cad WHERE TreeNodeId = "${dataSetId}";`;
+                    const res_sceneCADShp: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath_scene, sql: sql_sceneCADShp }, cb));
+                    if (!res_sceneCADShp.data) return { data: null, isSuccess: false, errMsg: "", };
+
+                    const { CoordinatesDefault } = res_sceneCADShp.data[0];
+                    if (CoordinatesDefault) {
+                        const CoordinatesDefault_json = JSON.parse(CoordinatesDefault);
+                        matchResult.coordinatesConfig.coordinates = CoordinatesDefault_json.Coordinates;
+                        matchResult.coordinatesConfig.basePoint = CoordinatesDefault_json.BasePoint;
+                        matchResult.coordinatesConfig.northAngle = CoordinatesDefault_json.NorthAngle;
+                        matchResult.coordinatesConfig.coordinatesType = CoordinatesDefault_json.CoordinatesType;
+                        matchResult.coordinatesConfig.coordinatesPoint = CoordinatesDefault_json.CoordinatesPoint;
+                        matchResult.coordinatesConfig.basePointType = CoordinatesDefault_json.BasePointType;
+                    }
+                }
+                resultList.push(matchResult);
+            }
+        }
+        return { data: resultList, isSuccess: true, errMsg: "", };
     }
 );
 
@@ -190,19 +393,332 @@ export const scene_v3 = createApiHandler(
         if (!res_componentTreeId.data) return { data: null, isSuccess: false, errMsg: "", };
 
         const respone = {
-            "sceneId": data,
-            "sceneName": res_scene.data[0].DisplayName,
-            "coordinatesType": res_scene.data[0].CoordinatesType,
-            "coordinates": res_scene.data[0].Coordinates,
-            "componentTreeId": res_componentTreeId.data[0].Id,
-            "displayMode": res_scene.data[0].DisplayMode,
-            "dataSetPosition": dataSetPosition,
-            "componentPosition": componentPosition,
+            sceneId: data,
+            sceneName: res_scene.data[0].DisplayName,
+            coordinatesType: res_scene.data[0].CoordinatesType,
+            coordinates: res_scene.data[0].Coordinates,
+            componentTreeId: res_componentTreeId.data[0].Id,
+            displayMode: res_scene.data[0].DisplayMode,
+            dataSetPosition: dataSetPosition,
+            componentPosition: componentPosition,
         }
 
         return { data: respone, isSuccess: true, errMsg: "", };
     }
 );
+
+// 根据场景ID查询树
+export const sceneTree_v3_getTreeById = createApiHandler(
+    ["sceneId"],
+    async function sceneTree_v3_getTreeById(data: any) {
+        const file_store = useFileStore();
+        const dbPath_scene = `${file_store.rootPath}/${file_store.fileName}/data/${data.sceneId}.db`;
+
+        //从数据库读取节点信息
+        const sql_sceneTreeNode = `SELECT * FROM Ac_Scene_TreeNode`;
+        const res_sceneTreeNode: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath_scene, sql: sql_sceneTreeNode }, cb));
+        if (!res_sceneTreeNode.data) return { data: null, isSuccess: false, errMsg: "", };
+
+        const nodeList: any[] = res_sceneTreeNode.data;
+
+        // --------------------------------------------------------------------
+        // 【步骤1】创建所有节点（不处理父子关系，只初始化节点）
+        // --------------------------------------------------------------------
+        const allNodes: any[] = []; // 所有节点
+        for (const node of nodeList) {
+            const { Id, MetadataNodeId, DisplayName, MetadataNodeType, NodeType, ParentId, LevelCode, LevelPathName, ViewStatus } = node;
+            let displayName = DisplayName;
+            if (displayName === '模型文件') displayName = '模型';
+            if (displayName === '模型元件') displayName = '构件';
+
+            // === 创建树节点 ===
+            const treeNode: any = {
+                dataSetType: MetadataNodeType,
+                dataSetId: MetadataNodeId,
+                sceneNodeId: Id,
+                sceneNodeName: DisplayName,
+                parentId: ParentId,
+                levelCode: LevelCode,
+                levelPathName: LevelPathName,
+                nodeType: NodeType,
+                viewStatus: ViewStatus,
+                coordinates: null,
+                componentInfo: null,
+                waterInfo: null,
+                excavateInfo: null,
+                monomerizationInfo: null,
+                enableLazyLoading: false,
+                fileIntId: null,
+                uniqueId: null,
+                formatType: 0,
+                subNodes: [],
+            };
+
+            // 处理子节点特殊类型数据
+            if (treeNode.nodeType == 2) {
+                const dataSetId_noline = treeNode.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
+                // BIM模型
+                if (treeNode.dataSetType == 0) {
+                    const dbPat_bim = `${file_store.rootPath}/${file_store.fileName}/data/${treeNode.dataSetId}/${treeNode.dataSetId}.db`;
+
+                    //从数据库读取模型文件信息
+                    const tableName = `${dataSetId_noline}_filename`;
+                    const sql_bimFile = `SELECT HostFileId, TreeNode FROM "${tableName}";`;
+                    const res_bimFile: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPat_bim, sql: sql_bimFile }, cb));
+                    if (!res_bimFile.data) return { data: null, isSuccess: false, errMsg: "", };
+
+                    const { HostFileId, TreeNode } = res_bimFile.data[0];
+                    treeNode.fileIntId = HostFileId.toString();
+                    treeNode.uniqueId = Math.abs(HostFileId).toString();
+                    treeNode.enableLazyLoading = TreeNode ? false : true;
+
+                    //从数据库读取模型树信息
+                    const sql_bimTreeNode = `SELECT FormatType FROM AC_Bim_TreeNode;`;
+                    const res_bimTreeNode: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPat_bim, sql: sql_bimTreeNode }, cb));
+                    if (!res_bimTreeNode.data) return { data: null, isSuccess: false, errMsg: "", };
+
+                    const { FormatType } = res_bimTreeNode.data[0];
+                    treeNode.formatType = FormatType;
+                }
+                // 倾斜摄影
+                else if (treeNode.dataSetType == 11) {
+                    const dbPat_osgb = `${file_store.rootPath}/${file_store.fileName}/data/${treeNode.dataSetId}/${treeNode.dataSetId}.db`;
+
+                    //从数据库读取坐标系信息
+                    const sql_osgbTreeNode = `SELECT * FROM AC_Osgb_TreeNode;`;
+                    const res_osgbTreeNode: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPat_osgb, sql: sql_osgbTreeNode }, cb));
+                    if (!res_osgbTreeNode.data) return { data: null, isSuccess: false, errMsg: "" };
+
+                    const { FormatType } = res_osgbTreeNode.data[0];
+                    treeNode.formatType = FormatType;
+                }
+                // 点云
+                else if (treeNode.dataSetType == 15) {
+                    const dbPat_pointCloud = `${file_store.rootPath}/${file_store.fileName}/data/${treeNode.dataSetId}/${treeNode.dataSetId}.db`;
+
+                    // 获取类型
+                    const sql_pcTreeNode = `SELECT * FROM AC_PointCloud_TreeNode;`;
+                    const res_pcTreeNode: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPat_pointCloud, sql: sql_pcTreeNode }, cb));
+                    if (!res_pcTreeNode.data) return { data: null, isSuccess: false, errMsg: "" };
+
+                    const { FormatType } = res_pcTreeNode.data[0];
+                    treeNode.formatType = FormatType;
+                }
+                // 场景cad矢量
+                else if (treeNode.dataSetType == 21) {
+                    // 获取配置信息
+                    const sql_cadShp = `SELECT * FROM AC_Scene_Cad;`;
+                    const res_cadShp: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath_scene, sql: sql_cadShp }, cb));
+                    if (!res_cadShp.data) return { data: null, isSuccess: false, errMsg: "" };
+
+                    const { LodConfig, Lod } = res_cadShp.data[0];
+                    if (LodConfig) {
+                        const LodConfig_json = JSON.parse(LodConfig);
+                        const systemLodConfig = {
+                            recommendLod: LodConfig_json.CurLOD,
+                            currentLod: LodConfig_json.CurLOD,
+                            lodNum: LodConfig_json.LODNum,
+                            resolution: LodConfig_json.Resolution,
+                            tileSize: LodConfig_json.TileSize,
+                            visualRange: LodConfig_json.VisualRange
+                        }
+                        treeNode.systemLodConfig = systemLodConfig;
+                    }
+                    treeNode.lod = Lod;
+                }
+                // 场景矢量
+                else if (treeNode.dataSetType == 22) {
+                    // 获取配置信息
+                    const sql_sceneShp = `SELECT * FROM AC_Scene_Vector;`;
+                    const res_sceneShp: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath_scene, sql: sql_sceneShp }, cb));
+                    if (!res_sceneShp.data) return { data: null, isSuccess: false, errMsg: "" };
+
+                    const { LodConfig, Lod } = res_sceneShp.data[0];
+                    if (LodConfig) {
+                        const LodConfig_json = JSON.parse(LodConfig);
+                        const systemLodConfig = {
+                            recommendLod: LodConfig_json.CurLOD,
+                            currentLod: LodConfig_json.CurLOD,
+                            lodNum: LodConfig_json.LODNum,
+                            resolution: LodConfig_json.Resolution,
+                            tileSize: LodConfig_json.TileSize,
+                            visualRange: LodConfig_json.VisualRange
+                        }
+                        treeNode.systemLodConfig = systemLodConfig;
+                    }
+                    treeNode.lod = Lod;
+                }
+                // 单构件
+                else if (treeNode.dataSetType == 19) {
+                    //从数据库读取单构件信息
+                    const sql_compInfo = `SELECT * FROM AC_Scene_Component_Instance WHERE TreeNodeId = "${treeNode.dataSetId}"`;
+                    const res_compInfo: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath_scene, sql: sql_compInfo }, cb));
+                    if (!res_compInfo.data) return { data: null, isSuccess: false, errMsg: "", };
+
+                    const { FileId, ElemId, HasAnimation, EnableAnimationPlay, PlayMode, IsPublished, IsRemoved, ExtraProperties } = res_compInfo.data[0];
+                    // 获取单构件位置信息
+                    const location: any = { DataSetCRS: "", scale: "[1,1,1]", rotate: "[0,0,0,1]", translation: "[0,0,0]" };
+                    const ExtraProperties_json = JSON.parse(ExtraProperties);
+                    if (ExtraProperties_json && ExtraProperties_json.Location) {
+                        location.DataSetCRS = ExtraProperties_json.Location.DataSetCRS;
+                        location.scale = ExtraProperties_json.Location.Scale;
+                        location.rotate = ExtraProperties_json.Location.Rotate;
+                        location.translation = ExtraProperties_json.Location.Translation;
+                    }
+
+                    //从数据库读取单构件文件信息
+                    const sql_compFile = `SELECT "Index" FROM AC_Scene_Component_Paks WHERE FileId = "${FileId}";`;//Index 是 SQL 的保留关键字，需要用双引号 " 或 **反引号 `** 把 Index 包起来
+                    const res_compFile: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath_scene, sql: sql_compFile }, cb));
+                    if (!res_compFile.data) return { data: null, isSuccess: false, errMsg: "", };
+
+                    const { Index } = res_compFile.data[0];
+
+                    const componentInfo: any = {
+                        instanceIndex: ElemId,
+                        playMode: PlayMode,
+                        enableAnimationPlay: EnableAnimationPlay ? true : false,
+                        location: location,
+                        hostFileId: Index,
+                        isPublished: IsPublished ? true : false,
+                        isRemoved: IsRemoved ? true : false,
+                        hasAnimation: HasAnimation ? true : false,
+                        treeNodeId: treeNode.dataSetId
+                    }
+                    treeNode.componentInfo = componentInfo;
+                }
+                // 水面
+                else if (treeNode.dataSetType == 23) {
+                    //从数据库读取水面信息
+                    const sql_water = `SELECT * FROM AC_Scene_Water WHERE Id = "${treeNode.dataSetId}"`;
+                    const res_water: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath_scene, sql: sql_water }, cb));
+                    if (!res_water.data) return { data: null, isSuccess: false, errMsg: "", };
+
+                    const { Id, Color, Transparency, GeoJson, BlendDist, ExpandDist, DepthBias, VisDist } = res_water.data[0];
+                    const waterInfo: any = {
+                        blendDist: BlendDist,
+                        color: Color,
+                        depthBias: DepthBias,
+                        expandDist: ExpandDist,
+                        geoJson: GeoJson,
+                        id: Id,
+                        transparency: Transparency,
+                        visDist: VisDist,
+                    }
+                    treeNode.waterInfo = waterInfo;
+                }
+                // 挤出（挖洞）
+                else if (treeNode.dataSetType == 24) {
+                    //从数据库读取挤出（挖洞）信息
+                    const sql_extrude = `SELECT * FROM AC_Scene_Excavate WHERE Id = "${treeNode.dataSetId}"`;
+                    const res_extrude: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath_scene, sql: sql_extrude }, cb));
+                    if (!res_extrude.data) return { data: null, isSuccess: false, errMsg: "", };
+                    const { Id, GeoJson, DigType, TextureFileDataId, DepthLimitRange, TreeNodeIds } = res_extrude.data[0];
+                    const excavateInfo: any = {
+                        id: Id,
+                        digType: DigType,
+                        textureFileDataId: TextureFileDataId,
+                        geoJson: GeoJson,
+                        treeNodeIds: TreeNodeIds ? JSON.parse(TreeNodeIds) : null,
+                        depthLimitRange: DepthLimitRange
+                    }
+                    treeNode.excavateInfo = excavateInfo;
+                }
+                // 单体化
+                else if (treeNode.dataSetType == 25) {
+                    //从数据库读取单体化信息
+                    const sql_monomer = `SELECT * FROM AC_Scene_Monomerization WHERE Id = "${treeNode.dataSetId}"`;
+                    const res_monomer: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath_scene, sql: sql_monomer }, cb));
+                    if (!res_monomer.data) return { data: null, isSuccess: false, errMsg: "", };
+
+                    const { Id, TopHeight, BottomHeight, Level, Expansion, SpaceNumPerUnit, DisplayMode, MonomerizationType, RegionJson, IsBindModel, DataSetId } = res_monomer.data[0];
+                    //单体化分层分户信息（单元）
+                    const sql_monomer_unit = `SELECT * FROM AC_Scene_Monomerization_Unit WHERE MonomerizationId = "${Id}"`;
+                    const res_monomer_unit: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath_scene, sql: sql_monomer_unit }, cb));
+                    if (!res_monomer_unit.data) return { data: null, isSuccess: false, errMsg: "", };
+
+                    const monomer_units = res_monomer_unit.data;
+                    const levelJson: any[] = [];
+                    //单体化分层分户信息（层）
+                    for (const unit of monomer_units) {
+                        const sql_monomer_floor = `SELECT * FROM AC_Scene_Monomerization_Floor WHERE UnitId = "${unit.Id}"`;
+                        const res_monomer_floor: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath_scene, sql: sql_monomer_floor }, cb));
+                        if (!res_monomer_floor.data) return { data: null, isSuccess: false, errMsg: "", };
+
+                        const monomer_floors = res_monomer_floor.data;
+                        const floors: any[] = [];
+                        //单体化分层分户信息（房间）
+                        for (const floor of monomer_floors) {
+                            const sql_monomer_room = `SELECT * FROM AC_Scene_Monomerization_Room WHERE FloorId = "${floor.Id}"`;
+                            const res_monomer_room: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath_scene, sql: sql_monomer_room }, cb));
+                            if (!res_monomer_room.data) return { data: null, isSuccess: false, errMsg: "", };
+
+                            const monomer_rooms = res_monomer_room.data;
+                            const rooms: any[] = [];
+                            for (const room of monomer_rooms) {
+                                rooms.push({
+                                    id: room.Id,
+                                    name: room.Name,
+                                    attrs: room.AttrJson ? JSON.parse(room.AttrJson) : [],
+                                    geoJson: room.GeoJson
+                                });
+                            }
+                            floors.push({ id: floor.Id, name: floor.Name, rooms: rooms });
+                        }
+                        levelJson.push({ id: unit.Id, name: unit.Name, floors: floors });
+                    }
+
+                    const monomerizationInfo: any = {
+                        topHeight: TopHeight,
+                        bottomHeight: BottomHeight,
+                        level: Level,
+                        expansion: Expansion,
+                        spaceNumPerUnit: SpaceNumPerUnit,
+                        displayMode: DisplayMode,
+                        monomerizationType: MonomerizationType,
+                        regionJson: RegionJson,
+                        isBindModel: IsBindModel,
+                        dataSetId: DataSetId,
+                        levelJson: levelJson
+                    }
+                    treeNode.monomerizationInfo = monomerizationInfo;
+                }
+            }
+
+            allNodes.push(treeNode);
+        }
+
+        // --------------------------------------------------------------------
+        // 【步骤2】建立父子映射关系创建目录树结构（核心！）
+        // --------------------------------------------------------------------
+        const nodeMap = new Map<string, any>();
+        const rootNodes: any[] = [];
+
+        allNodes.forEach(n => nodeMap.set(n.sceneNodeId, n));//构件map结构，便于查找
+        allNodes.forEach(node => {
+            if (node.parentId === '00000000-0000-0000-0000-000000000000') {
+                rootNodes.push(node);
+            } else {
+                const parent = nodeMap.get(node.parentId);// 查找rootNodes里的父节点
+                parent && parent.subNodes.push(node);
+            }
+        });
+
+        return { data: rootNodes, isSuccess: true, errMsg: "", };
+    }
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 export function getTypeStr(value: any): string {
     return Object.prototype.toString.call(value).slice(8, -1).toLowerCase();
@@ -221,6 +737,7 @@ const urlToHandler: Record<string, (data: any) => Promise<any>> = {
     "/engine/v3/room/exists": engine_v3_room_exists,
     "/dataSet/v3/viewDataSetModel": dataSet_v3_viewDataSetModel,
     "/scene/v3": scene_v3,
+    "/sceneTree/v3/getTreeById": sceneTree_v3_getTreeById,
 };
 
 

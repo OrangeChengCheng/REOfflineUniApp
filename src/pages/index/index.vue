@@ -1,7 +1,7 @@
 <!--
  * @Author: Lemon C
  * @Date: 2026-01-22 10:16:05
- * @LastEditTime: 2026-03-24 15:46:24
+ * @LastEditTime: 2026-04-01 11:37:35
 -->
 <template>
     <view class="content">
@@ -54,6 +54,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue';
+import dataTool from '@/utils/dataTool';
 import { useFileStore } from '@/stores/file';
 
 const file_store = useFileStore();
@@ -78,7 +79,13 @@ const offlineFileList = ref<any[]>([
         type: 2,
         filePath: 'storage/emulated/0/Android/data/com.realengine.androidofflineapp/files/REOfflineDoc/[scene_lib]离线场景',
         id: '3a1ff815-fd2a-39d0-db7e-5d7c1bdadbb8',
-        subId: ['3a1dac58-d288-f55b-e902-ea8b7d573a5e', '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee'],
+        subId: [
+            '3a1d83c0-c8ac-eca5-6bf3-874e8f2f7d39',
+            '3a1dac58-d288-f55b-e902-ea8b7d573a5e',
+            '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee',
+            '3a202af8-f025-1c9e-19e2-34d5cf844c97',
+            '3a2036c2-0b9a-d7c2-789a-b96b53d62e4d',
+        ],
     },
 ]);
 const percentage = ref(0);
@@ -99,7 +106,6 @@ const fileStr_computed = computed(() => {
 });
 
 const shouEngine = () => {
-    uni.$re.unipluginLog('shouEngine');
     uni.$re
         .realEngineRender({
             name: 'uni-app',
@@ -495,24 +501,47 @@ const getDataSetList = (item: any) => {
     });
 };
 
-
 const getScene = async (item: any) => {
     file_store.fileName = item.fileName;
+    file_store.fileResType = item.type;
 
     // 获取场景信息
     const res_1 = await uni.$service.getSceneInfo(item.id);
-    uni.showModal({
-        title: '获取结果',
-        content: JSON.stringify(res_1),
-    });
+    // 获取场景树
+    const res_2 = await uni.$service.getSceneTree({ sceneId: item.id, isPublished: true }, res_1);
+    // 处理数据集ID列表
+    const dataSetIdList = dataTool.handle_dataSetIdList(res_2, res_1);
+    // 并行处理各种数据
+    const [terrainList, entityList, waterList, extrudeList, monomerList] = await Promise.all([
+        dataTool.handle_terrainDataSetList(res_2, 2),
+        dataTool.handle_entityData(res_2, res_1.componentPosition),
+        dataTool.handle_waterData(res_2),
+        dataTool.handle_extrudeData(res_2, []),
+        dataTool.handle_monomerData(res_2),
+    ]);
+    // 获取数据集信息
+    const res_3 = await uni.$service.getDataSetList({ dataSetIds: dataSetIdList });
+    // 处理数据
+    const dataSetList_temp1: any[] = dataTool.handle_dataSetTrans(res_3, res_1.dataSetPosition);
+    const dataSetList_temp2 = dataTool.handle_terrainLayerLev(dataSetList_temp1, terrainList);
+    const dataSetList = dataTool.handle_dataSetId(dataSetList_temp2);
 
-    // let params = { dataSetIds: item.type == 2 ? item.subId : [item.id] };
-    // uni.$service.getDataSetList(params).then((res: any) => {
-    //     uni.showModal({
-    //         title: '获取结果',
-    //         content: JSON.stringify(res),
-    //     });
-    // });
+    const engineData = {
+        filePath: `${file_store.rootPath}/${file_store.fileName}`,
+        sceneId: item.id,
+        projName: item.fileName,
+        dataSetList: dataSetList,
+        worldCRS: res_1.coordinates,
+        shareType: 2,
+        shareViewMode: res_1.displayMode,
+        entityList: entityList,
+        waterList: waterList,
+        extrudeList: extrudeList,
+        extrudeTexList: [],
+        monomerList: monomerList,
+    };
+
+    uni.$re.showOfflineEngine(engineData, (res: any) => {});
 };
 </script>
 

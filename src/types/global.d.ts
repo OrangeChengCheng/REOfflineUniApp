@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-13 18:01:53
- * @LastEditTime: 2026-03-24 12:20:25
+ * @LastEditTime: 2026-04-03 15:25:03
  */
 
 
@@ -21,6 +21,7 @@ declare global {
             unzipFile(data: any, onCallBack: (data: any) => void): void;
             saveUniFile(data: any, onCallBack: (data: any) => void): void;
             useFileUniToApp(data: any, onCallBack: (data: any) => void): void;
+            file_getChildBySuffix(data: any, onCallBack: (data: any) => void): void;
             getLocFileList(data: any, onCallBack: (data: any) => void): void;
             delFile(data: any, onCallBack: (data: any) => void): void;
             selFile(data: any, onCallBack: (data: any) => void): void;
@@ -30,9 +31,13 @@ declare global {
         }
         $service: {
             commonTimeout: number,
-            isSharedRoomExistService(params: any): Promise<any>;
-            getDataSetList(params: any): Promise<any>;
             getSceneInfo(params: any): Promise<any>;
+            getSceneTree(params: any, sceneInfo: any): Promise<any>;
+            getModelTree(params: any): Promise<any>;
+            getDataSetList(params: any): Promise<any>;
+            getCadDataSetList(params: any): Promise<any>;
+            // getExtrudeTexList(sceneTree: any): Promise<any>;
+            isSharedRoomExistService(params: any): Promise<any>;
         };
         $tool: {
             toPromise<T = any>(fn: (callback: (res: any) => void) => void): Promise<T>;

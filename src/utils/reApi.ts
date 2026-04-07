@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-14 14:22:08
- * @LastEditTime: 2026-03-24 15:15:16
+ * @LastEditTime: 2026-04-07 17:03:30
  */
 
 
@@ -16,6 +16,7 @@ interface ApiMethods {
     saveUniFile(data: any, onCallBack: (data: any) => void): void;
     getLocFileList(data: any, onCallBack: (data: any) => void): void;
     useFileUniToApp(data: any, onCallBack: (data: any) => void): void;
+    file_getChildBySuffix(data: any, onCallBack: (data: any) => void): void;
     delFile(data: any, onCallBack: (data: any) => void): void;
     selFile(data: any, onCallBack: (data: any) => void): void;
     showOfflineEngine(data: any, onCallBack: (data: any) => void): void;
@@ -92,15 +93,17 @@ const api: ApiMethods = {
 
     useFileUniToApp: (data: any, onCallBack: (data: any) => void) => {
         const module = api.getREModule();
-        if (!module) {
-            onCallBack({
-                success: false,
-                data: null,
-                msg: "RE 模块未初始化"
-            });
-            return;
-        }
+        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
         module.useFileUniToApp(data, (res: any) => {
+            // 不能使用promise的resolve进行返回，要使用传递回调进行处理，不然resolve执行后函数就结束，无法再次执行resolve，需要保持函数一直在，使用参数的回调
+            onCallBack(res);
+        });
+    },
+
+    file_getChildBySuffix: (data: any, onCallBack: (data: any) => void) => {
+        const module = api.getREModule();
+        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
+        module.fileGetChildBySuffix(data, (res: any) => {
             // 不能使用promise的resolve进行返回，要使用传递回调进行处理，不然resolve执行后函数就结束，无法再次执行resolve，需要保持函数一直在，使用参数的回调
             onCallBack(res);
         });
@@ -131,15 +134,7 @@ const api: ApiMethods = {
 
     showOfflineEngine: (data: any, onCallBack: (data: any) => void) => {
         const module = api.getREModule();
-        if (!module) {
-            // 不能使用promise的resolve进行返回，要使用传递回调进行处理，不然resolve执行后函数就结束，无法再次执行resolve，需要保持函数一直在，使用参数的回调
-            onCallBack({
-                success: false,
-                data: null,
-                msg: "RE 模块未初始化"
-            });
-            return;
-        }
+        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
         module.showOfflineEngine(data, (res: any) => {
             // 不能使用promise的resolve进行返回，要使用传递回调进行处理，不然resolve执行后函数就结束，无法再次执行resolve，需要保持函数一直在，使用参数的回调
             onCallBack(res);
@@ -148,15 +143,7 @@ const api: ApiMethods = {
 
     dbQuery: (data: any, onCallBack: (data: any) => void) => {
         const module = api.getREModule();
-        if (!module) {
-            // 不能使用promise的resolve进行返回，要使用传递回调进行处理，不然resolve执行后函数就结束，无法再次执行resolve，需要保持函数一直在，使用参数的回调
-            onCallBack({
-                success: false,
-                data: null,
-                msg: "RE 模块未初始化"
-            });
-            return;
-        }
+        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
         module.dbQuery(data, (res: any) => {
             // 不能使用promise的resolve进行返回，要使用传递回调进行处理，不然resolve执行后函数就结束，无法再次执行resolve，需要保持函数一直在，使用参数的回调
             onCallBack(res);

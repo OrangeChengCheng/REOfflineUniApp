@@ -26,6 +26,15 @@ export function getSceneById(sceneId: any) {
 
 
 // MOD-- 目录树 相关
+// 根据场景ID查询树
+export function getSingleSceneTreeById(data: any) {
+    return requestPost('/sceneTree/v3/getTreeById', data);
+}
+
+// 获取模型目录树
+export function getProjectTree(data: any) {
+    return requestPost('/dataSet/v3/dataSetRootNodes', data);
+}
 
 // 是否具有空间信息
 export function isSharedRoomExistService(data: any) {
@@ -37,4 +46,10 @@ export function isSharedRoomExistService(data: any) {
 // 获取工程信息模型
 export function getProjectModel(data: any) {
     return requestPost('/dataSet/v3/viewDataSetModel', data);
+}
+
+// MOD-- CAD 相关
+// 获取数据集下的文件列表
+export function getCadDatasetFiles(data: any) {
+    return requestPost('/cadTree/v3/file/list', data);
 }

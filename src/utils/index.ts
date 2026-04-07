@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-14 10:05:14
- * @LastEditTime: 2026-03-24 11:52:09
+ * @LastEditTime: 2026-04-03 15:24:53
  */
 import config from './config'
 import reApi from './reApi'
@@ -17,9 +17,13 @@ export default {
         }
         uni.$service = {
             commonTimeout: config.getTimeout(),
-            isSharedRoomExistService: serviceApi.isSharedRoomExistService,
-            getDataSetList: serviceApi.getDataSetList,
             getSceneInfo: serviceApi.getSceneInfo,
+            getSceneTree: serviceApi.getSceneTree,
+            getModelTree: serviceApi.getModelTree,
+            getDataSetList: serviceApi.getDataSetList,
+            getCadDataSetList: serviceApi.getCadDataSetList,
+            // getExtrudeTexList: serviceApi.getExtrudeTexList,
+            isSharedRoomExistService: serviceApi.isSharedRoomExistService,
         };
         uni.$re = {
             unipluginLog: reApi.unipluginLog,
@@ -30,6 +34,7 @@ export default {
             unzipFile: reApi.unzipFile,
             saveUniFile: reApi.saveUniFile,
             useFileUniToApp: reApi.useFileUniToApp,
+            file_getChildBySuffix: reApi.file_getChildBySuffix,
             getLocFileList: reApi.getLocFileList,
             delFile: reApi.delFile,
             selFile: reApi.selFile,

@@ -37,14 +37,12 @@ const api: ApiMethods = {
             item['nodeName'] = item.sceneNodeName;
             item['nodeId'] = item.sceneNodeId;
         });
-
         let allDatasets = api.handle_findAllNodeByLevel(sceneData, 2);
         let { componentPosition } = sceneInfo;
         allDatasets.forEach((item: any) => {
             item['customNodeType'] = 'dataSet';
             item['nodeId'] = item.sceneNodeId;
             item['nodeName'] = item.sceneNodeName;
-
             if (item.viewStatus === 2) {
                 item['disabled'] = true;
             }
@@ -95,7 +93,6 @@ const api: ApiMethods = {
                 }
             }
         });
-
         // 隐藏没有数据的根节点
         sceneData = sceneData.filter((el: any) => el.subNodes.length);
         return sceneData;
@@ -149,7 +146,6 @@ const api: ApiMethods = {
     // MARK data 处理数据集--坐标系标识符
     handle_dataSetCRS: (dataSetInfo: any) => {
         if (!SETCRS_DATA_TYPE.includes(dataSetInfo.dataSetType)) return '';
-
         let crsConfig = dataSetInfo.coordinatesConfig;
         if (crsConfig.coordinatesType === 'None') return '';
 
@@ -409,8 +405,8 @@ const api: ApiMethods = {
             extrudeInfo.type = extrudeGeoJson.type;
             if (extrudeGeoJson.type === 2) {
                 const find = extrudeTexList.find((el: any) => el.textureGuid === item.excavateInfo.textureFileDataId);
-                extrudeInfo.texSize = JSON.parse(JSON.stringify(find.picSize));
-                extrudeInfo.texPath = find.picPath;
+                extrudeInfo.texSize = find ? JSON.parse(JSON.stringify(find.picSize)) : [0, 0];
+                extrudeInfo.texPath = find ? find.picPath : '';
             }
             extrudeList.push(extrudeInfo);
         });
