@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-13 18:01:53
- * @LastEditTime: 2026-04-03 15:25:03
+ * @LastEditTime: 2026-04-09 17:14:53
  */
 
 
@@ -37,8 +37,8 @@ declare global {
             getDataSetList(params: any): Promise<any>;
             getCadDataSetList(params: any): Promise<any>;
             // getExtrudeTexList(sceneTree: any): Promise<any>;
-            isSharedRoomExistService(params: any): Promise<any>;
-            getProjectTree(params: any): Promise<any>;
+            isRoomExistService(params: any): Promise<any>;
+            getRoomList(params: any): Promise<any>;
         };
         $tool: {
             toPromise<T = any>(fn: (callback: (res: any) => void) => void): Promise<T>;

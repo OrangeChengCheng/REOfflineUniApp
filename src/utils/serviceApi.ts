@@ -1,15 +1,16 @@
 /*
  * @Author: Lemon C
  * @Date: 2025-11-19 14:50:45
- * @LastEditTime: 2026-04-08 17:44:38
+ * @LastEditTime: 2026-04-09 17:47:01
  */
 import {
-    isSharedRoomExistService,
+    isRoomExistService,
     getProjectModel,
     getSceneById,
     getSingleSceneTreeById,
     getProjectTree,
     getCadDatasetFiles,
+    getRoomList,
 } from '@/service/interface';
 
 import dataTool from '@/utils/dataTool';
@@ -23,8 +24,8 @@ interface ApiMethods {
     getDataSetList(params: any): Promise<any>;
     getCadDataSetList(params: any): Promise<any>;
     // getExtrudeTexList(sceneTree: any): Promise<any>;
-    isSharedRoomExistService(params: any): Promise<any>;
-    getProjectTree(params: any): Promise<any>;
+    isRoomExistService(params: any): Promise<any>;
+    getRoomList(params: any): Promise<any>;
 }
 
 const api: ApiMethods = {
@@ -185,22 +186,36 @@ const api: ApiMethods = {
     },
 
     // MARK 是否具有空间信息
-    isSharedRoomExistService: (paran: any): Promise<any> => {
-        return new Promise<any>((resolve) => {
-            isSharedRoomExistService(paran).then((res) => {
-                resolve(res);
-            });
-        });
+    isRoomExistService: async (paran: any): Promise<any> => {
+        try {
+            const res = await isRoomExistService(paran);
+            if (res.isSuccess) {
+                return res.data;
+            } else {
+                uni.$re.unipluginLog(res.errMsg || '是否具有空间信息获取失败');
+                throw new Error(res.errMsg || '是否具有空间信息获取失败');
+            }
+        } catch (error) {
+            throw error;
+        }
     },
 
-    // MARK 获取模型目录树
-    getProjectTree: (paran: any): Promise<any> => {
-        return new Promise<any>((resolve) => {
-            getProjectTree(paran).then((res) => {
-                resolve(res);
-            });
-        });
+    // MARK 获取空间信息
+    getRoomList: async (paran: any): Promise<any> => {
+        try {
+            const res = await getRoomList(paran);
+            if (res.isSuccess) {
+                return res.data;
+            } else {
+                uni.$re.unipluginLog(res.errMsg || '空间信息获取失败');
+                throw new Error(res.errMsg || '空间信息获取失败');
+            }
+        } catch (error) {
+            throw error;
+        }
     },
+
+
 
 }
 

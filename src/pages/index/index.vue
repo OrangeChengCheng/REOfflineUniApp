@@ -1,7 +1,7 @@
 <!--
  * @Author: Lemon C
  * @Date: 2026-01-22 10:16:05
- * @LastEditTime: 2026-04-09 11:37:27
+ * @LastEditTime: 2026-04-09 17:48:30
 -->
 <template>
     <view class="content">
@@ -34,6 +34,7 @@
             </view>
             <view class="btn-line">
                 <el-button type="primary" @click.stop="getCAD(offlineFileList[4])">获取CAD信息</el-button>
+                <el-button type="primary" @click.stop="getRoomInfo(offlineFileList[5])">获取房间信息</el-button>
             </view>
         </view>
         <view class="progress-area">
@@ -105,6 +106,13 @@ const offlineFileList = ref<any[]>([
         filePath: 'storage/emulated/0/Android/data/com.realengine.androidofflineapp/files/REOfflineDoc/[cad]7_17-⑦-①立面图.dwg',
         id: '3a2063b6-4a88-19cb-72a3-c2f333d6d995',
         dataSetTypeStr: 'CAD',
+    },
+    {
+        fileName: '[model]BIMFACE示例模型.rvt',
+        type: 1,
+        filePath: 'storage/emulated/0/Android/data/com.realengine.androidofflineapp/files/REOfflineDoc/[model]BIMFACE示例模型.rvt',
+        id: '3a1d16de-2ced-0f6a-6b6c-dc5f90cf1624',
+        dataSetTypeStr: 'bim',
     },
 ]);
 const percentage = ref(0);
@@ -501,7 +509,7 @@ const dbTableExist = (item: any) => {
     // });
 
     let params = { dataSetId: item.id };
-    uni.$service.isSharedRoomExistService(params).then((res: any) => {
+    uni.$service.isRoomExistService(params).then((res: any) => {
         uni.showModal({
             title: '获取结果',
             content: JSON.stringify(res),
@@ -595,6 +603,52 @@ const getCAD = async (item: any) => {
     };
 
     uni.$re.showOfflineEngine(engineData, (res: any) => {});
+};
+const getRoomInfo = async (item: any) => {
+    file_store.fileName = item.fileName;
+
+    // 获取模型目录树
+    const res = await uni.$service.getModelTree({ dataSetId: item.id });
+    const treeData = dataTool.handle_formatDataSetTree(res);
+
+    const fileNames = handle_getRoomName(treeData);
+    let params = {
+        dataSetId: item.id,
+        fileNames: fileNames,
+    };
+    let data = await uni.$service.getRoomList(params);
+    data = data.filter((item: any) => {
+        let rooms = item.rooms;
+        if (rooms[0] && item.elementIntIds) {
+            return true;
+        } else {
+            return false;
+        }
+    });
+    let roomTreeData = data.map((item: any) => {
+        item['nodeName'] = item.hostFileName;
+        item['nodeId'] = item.hostFileId;
+        item['nodes'] = item.rooms;
+        return item;
+    });
+
+    uni.$re.unipluginLog(JSON.stringify(roomTreeData));
+};
+// MARK data 获取房间名称
+const handle_getRoomName = (treeData: any, formatType: any = 0) => {
+    // 带有房间和图纸信息的模型来源(根据srcCatalog字段判断来源)
+    const FileSrcWithRoomInfo = [0, 1, 4];
+    let pakNodeDatas = [];
+    if (formatType === 1) {
+        pakNodeDatas = treeData;
+    } else {
+        pakNodeDatas = treeData[0].nodes;
+    }
+    let roomFiles = pakNodeDatas.filter((el: any) => FileSrcWithRoomInfo.includes(el.srcCatalog));
+    let roomFilesName = roomFiles.map((item: any) => {
+        return item.name;
+    });
+    return roomFilesName;
 };
 </script>
 

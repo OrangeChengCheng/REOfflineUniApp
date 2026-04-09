@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-04-19 12:22:25
- * @LastEditTime: 2026-03-24 15:31:54
+ * @LastEditTime: 2026-04-09 16:39:03
  */
 import { requestPost, requestGet } from '@/service/offlineService';
 
@@ -37,8 +37,13 @@ export function getProjectTree(data: any) {
 }
 
 // 是否具有空间信息
-export function isSharedRoomExistService(data: any) {
+export function isRoomExistService(data: any) {
     return requestPost('/engine/v3/room/exists', data);
+}
+
+// 获取空间信息
+export function getRoomList(data: any) {
+    return requestPost('/engine/v3/room/list', data);
 }
 
 

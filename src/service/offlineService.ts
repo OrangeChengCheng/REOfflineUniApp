@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2026-03-20 11:31:20
- * @LastEditTime: 2026-04-09 11:48:53
+ * @LastEditTime: 2026-04-09 17:33:55
  */
 
 import { useFileStore } from '@/stores/file';
@@ -469,7 +469,8 @@ export const dataSet_v3_dataSetRootNodes = createApiHandler(
                 uniqueId: count.toString(),
                 enableLazyLoading: bimFile.TreeNode ? false : true,
                 hasRvtGroup: bimFile.RvtGroupTreeNode && JSON.parse(bimFile.RvtGroupTreeNode).nodes.length ? true : false,
-                fileId: Id
+                fileId: Id,
+                srcCatalog: dataSetType,
             }
             fileList.push(file);
             count++;
@@ -510,6 +511,71 @@ export const engine_v3_room_exists = createApiHandler(
         }
 
         return { data: { exist }, isSuccess: res.success, errMsg: "", };
+    }
+);
+
+// 获取空间信息
+export const engine_v3_room_list = createApiHandler(
+    ["dataSetId", "fileNames"],
+    async function engine_v3_room_list(data: any) {
+        const file_store = useFileStore();
+        const dbPath = `${file_store.rootPath}/${file_store.fileName}/data/${data.dataSetId}.db`;
+        const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
+
+        //获取房间信息
+        const tableName = `${dataSetId_noline}_room_Info`;
+        const sql_roomInfo = `SELECT * FROM "${tableName}";`;
+        const res_roomInfo: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_roomInfo }, cb));
+        if (!res_roomInfo.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+
+        // 创建用于递归的子函数
+        const traverse = (item: any, supNodes: any[]) => {
+            // 构建目标节点
+            const newItem = {
+                nodeId: item.nodeId,
+                nodeName: item.name,
+                nodes: []
+            };
+
+            // 递归子节点
+            if (item.nodes && item.nodes.length) {
+                item.nodes.forEach((sub: any) => {
+                    traverse(sub, newItem.nodes);
+                });
+            }
+
+            // 把处理好的节点放进结果
+            supNodes.push(newItem);
+        };
+
+        // 处理房间数据
+        const dataList: any[] = [];
+        for (const info of res_roomInfo.data) {
+            const rooms: any[] = []; // 所有房间信息
+            if (info.TreeNode) {
+                const TreeNode_json = JSON.parse(info.TreeNode);
+                // 开始遍历
+                TreeNode_json.nodes.forEach((item: any) => {
+                    traverse(item, rooms);
+                });
+            }
+
+            //获取pak信息
+            const sql_pakMap = `SELECT * FROM PakMap WHERE "Index" = ${Math.abs(info.HostFile_Id)};`;
+            const res_pakMap: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_pakMap }, cb));
+            if (!res_pakMap.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+            const { PakName } = res_pakMap.data[0];
+
+            const roomInfo = {
+                hostFileId: info.HostFile_Id,
+                hostFileName: PakName,
+                elementIntIds: info.Elem_IntIds ? info.Elem_IntIds.split(',').map((el: any) => Number(el)) : [],
+                rooms: rooms
+            }
+            dataList.push(roomInfo);
+        }
+
+        return { data: dataList, isSuccess: true, errMsg: "", };
     }
 );
 
@@ -823,9 +889,6 @@ export const cadTree_v3_file_list = createApiHandler(
                 lastModificationTime: cadMeta.LastModificationTime,
                 creationTime: cadMeta.CreationTime,
             }
-            uni.$re.unipluginLog("*********");
-            uni.$re.unipluginLog(item.resourcesAddress);
-            uni.$re.unipluginLog("*********");
             items.push(item);
         }
         return { data: { totalCount: items.length, items: items }, isSuccess: true, errMsg: "", };
@@ -863,6 +926,7 @@ const urlToHandler: Record<string, (data: any) => Promise<any>> = {
     "/sceneTree/v3/getTreeById": sceneTree_v3_getTreeById,
     "/dataSet/v3/dataSetRootNodes": dataSet_v3_dataSetRootNodes,
     "/engine/v3/room/exists": engine_v3_room_exists,
+    "/engine/v3/room/list": engine_v3_room_list,
     "/dataSet/v3/viewDataSetModel": dataSet_v3_viewDataSetModel,
     "/cadTree/v3/file/list": cadTree_v3_file_list,
 };

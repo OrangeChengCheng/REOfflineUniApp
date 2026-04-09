@@ -4,6 +4,7 @@ const SETCRS_DATA_TYPE = [0, 11, 15]; // 需要设置坐标系和基点的数据
 
 interface ApiMethods {
     handle_formatSceneTree(sceneTree: any, sceneInfo: any): any;
+    handle_formatDataSetTree(modelTree: any): any;
     handle_dataSetIdList(sceneTree: any, sceneInfo: any): any;
     handle_dataSetId(dataSetList: any): any;
     handle_dataSetCRS(dataSetInfo: any): any;
@@ -96,6 +97,37 @@ const api: ApiMethods = {
         // 隐藏没有数据的根节点
         sceneData = sceneData.filter((el: any) => el.subNodes.length);
         return sceneData;
+    },
+
+    // MARK data 格式化-数据集树
+    handle_formatDataSetTree: (modelTree: any) => {
+        const formatType = modelTree[0]?.formatType;
+        let treeData = [];
+        if (formatType === 1) {
+            treeData = modelTree[0].files;
+            treeData.forEach((item: any) => {
+                item['customNodeType'] = 'dataSet';
+                item['formatType'] = formatType;
+                item['name'] = item.fileName;
+                item['dataSetId'] = modelTree[0].dataSetId;
+                item['dataSetType'] = modelTree[0].dataSetType;
+                item.nodes = [{ name: '' }];
+            });
+        }
+        if (formatType === 2) {
+            modelTree.forEach((item: any) => {
+                item['customNodeType'] = 'dataSet';
+                item['name'] = item.dataSetName;
+                item.nodes = item.files;
+                item.nodes.forEach((node: any) => {
+                    node['customNodeType'] = 'file';
+                    node['name'] = node.fileName;
+                    node.nodes = [{ name: '' }];
+                });
+            });
+            treeData = modelTree;
+        }
+        return treeData;
     },
 
     // MARK data 递归获取数据集标识集合
