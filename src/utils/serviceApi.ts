@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2025-11-19 14:50:45
- * @LastEditTime: 2026-04-07 18:04:21
+ * @LastEditTime: 2026-04-08 17:44:38
  */
 import {
     isSharedRoomExistService,
@@ -24,6 +24,7 @@ interface ApiMethods {
     getCadDataSetList(params: any): Promise<any>;
     // getExtrudeTexList(sceneTree: any): Promise<any>;
     isSharedRoomExistService(params: any): Promise<any>;
+    getProjectTree(params: any): Promise<any>;
 }
 
 const api: ApiMethods = {
@@ -114,7 +115,7 @@ const api: ApiMethods = {
     //     }
     // },
 
-    
+
     // MARK Service 获取数据集资源地址
     getDataSetList: async (params: any): Promise<any> => {
         try {
@@ -187,6 +188,15 @@ const api: ApiMethods = {
     isSharedRoomExistService: (paran: any): Promise<any> => {
         return new Promise<any>((resolve) => {
             isSharedRoomExistService(paran).then((res) => {
+                resolve(res);
+            });
+        });
+    },
+
+    // MARK 获取模型目录树
+    getProjectTree: (paran: any): Promise<any> => {
+        return new Promise<any>((resolve) => {
+            getProjectTree(paran).then((res) => {
                 resolve(res);
             });
         });

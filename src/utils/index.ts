@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-14 10:05:14
- * @LastEditTime: 2026-04-03 15:24:53
+ * @LastEditTime: 2026-04-08 17:44:48
  */
 import config from './config'
 import reApi from './reApi'
@@ -24,6 +24,7 @@ export default {
             getCadDataSetList: serviceApi.getCadDataSetList,
             // getExtrudeTexList: serviceApi.getExtrudeTexList,
             isSharedRoomExistService: serviceApi.isSharedRoomExistService,
+            getProjectTree: serviceApi.getProjectTree,
         };
         uni.$re = {
             unipluginLog: reApi.unipluginLog,

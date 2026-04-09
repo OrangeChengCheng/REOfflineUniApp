@@ -38,6 +38,7 @@ declare global {
             getCadDataSetList(params: any): Promise<any>;
             // getExtrudeTexList(sceneTree: any): Promise<any>;
             isSharedRoomExistService(params: any): Promise<any>;
+            getProjectTree(params: any): Promise<any>;
         };
         $tool: {
             toPromise<T = any>(fn: (callback: (res: any) => void) => void): Promise<T>;

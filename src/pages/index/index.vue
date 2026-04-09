@@ -1,7 +1,7 @@
 <!--
  * @Author: Lemon C
  * @Date: 2026-01-22 10:16:05
- * @LastEditTime: 2026-04-01 11:37:35
+ * @LastEditTime: 2026-04-09 11:37:27
 -->
 <template>
     <view class="content">
@@ -30,6 +30,10 @@
             </view>
             <view class="btn-line">
                 <el-button type="primary" @click.stop="getScene(offlineFileList[2])">获取场景信息</el-button>
+                <el-button type="primary" @click.stop="getModels(offlineFileList[3])">获取模型组信息</el-button>
+            </view>
+            <view class="btn-line">
+                <el-button type="primary" @click.stop="getCAD(offlineFileList[4])">获取CAD信息</el-button>
             </view>
         </view>
         <view class="progress-area">
@@ -66,6 +70,7 @@ const offlineFileList = ref<any[]>([
         type: 1,
         filePath: 'storage/emulated/0/Android/data/com.realengine.androidofflineapp/files/REOfflineDoc/[model]药店-BIM案例模型.rvt',
         id: '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee',
+        dataSetTypeStr: 'bim',
     },
     {
         fileName: '[scene]离线场景',
@@ -86,6 +91,20 @@ const offlineFileList = ref<any[]>([
             '3a202af8-f025-1c9e-19e2-34d5cf844c97',
             '3a2036c2-0b9a-d7c2-789a-b96b53d62e4d',
         ],
+    },
+    {
+        fileName: '[models]bim模型组',
+        type: 1,
+        filePath: 'storage/emulated/0/Android/data/com.realengine.androidofflineapp/files/REOfflineDoc/[models]bim模型组',
+        id: '3a207e76-2018-6dbb-d07c-c7a28a314518',
+        dataSetTypeStr: 'bim',
+    },
+    {
+        fileName: '[cad]7_17-⑦-①立面图.dwg',
+        type: 1,
+        filePath: 'storage/emulated/0/Android/data/com.realengine.androidofflineapp/files/REOfflineDoc/[cad]7_17-⑦-①立面图.dwg',
+        id: '3a2063b6-4a88-19cb-72a3-c2f333d6d995',
+        dataSetTypeStr: 'CAD',
     },
 ]);
 const percentage = ref(0);
@@ -503,7 +522,6 @@ const getDataSetList = (item: any) => {
 
 const getScene = async (item: any) => {
     file_store.fileName = item.fileName;
-    file_store.fileResType = item.type;
 
     // 获取场景信息
     const res_1 = await uni.$service.getSceneInfo(item.id);
@@ -539,6 +557,41 @@ const getScene = async (item: any) => {
         extrudeList: extrudeList,
         extrudeTexList: [],
         monomerList: monomerList,
+    };
+
+    uni.$re.showOfflineEngine(engineData, (res: any) => {});
+};
+
+const getModels = async (item: any) => {
+    file_store.fileName = item.fileName;
+
+    // 获取资源数据
+    const dataSetList = await uni.$service.getDataSetList({ dataSetIds: [item.id] });
+
+    const engineData = {
+        filePath: `${file_store.rootPath}/${file_store.fileName}`,
+        sceneId: item.id,
+        projName: item.fileName,
+        dataSetList: dataSetList,
+        shareType: 1,
+        shareDataType: item.dataSetTypeStr,
+    };
+
+    uni.$re.showOfflineEngine(engineData, (res: any) => {});
+};
+const getCAD = async (item: any) => {
+    file_store.fileName = item.fileName;
+
+    // 获取资源数据
+    const cadDataSetList = await uni.$service.getCadDataSetList({ dataSetId: item.id });
+
+    const engineData = {
+        filePath: `${file_store.rootPath}/${file_store.fileName}`,
+        sceneId: item.id,
+        projName: item.fileName,
+        dataSetList: cadDataSetList,
+        shareType: 1,
+        shareDataType: item.dataSetTypeStr,
     };
 
     uni.$re.showOfflineEngine(engineData, (res: any) => {});
