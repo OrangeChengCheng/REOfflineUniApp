@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-04-19 12:22:25
- * @LastEditTime: 2026-04-10 11:34:14
+ * @LastEditTime: 2026-04-10 14:24:33
  */
 import { requestPost, requestGet } from '@/service/offlineService';
 
@@ -44,6 +44,16 @@ export function getProjectTreeSubNodes(data: any) {
 // 请求模型目录树子节点-懒加载
 export function getProjectTreeSubNodesByLazy(data: any) {
     return requestPost('/dataSet/v3/dataSetFileTreeNodes/lazy', data);
+}
+
+// 请求模型目录树下的构件ID
+export function getProjectTreeChildren(data: any) {
+    return requestPost('/element/v3/getTreeChildren', data);
+}
+
+// 请求模型目录树下的构件ID-懒加载
+export function getProjectTreeChildrenByLazy(data: any) {
+    return requestPost('/element/v3/getTreeChildren/lazy', data);
 }
 
 // 是否具有空间信息

@@ -36,6 +36,8 @@ declare global {
             getModelTree(params: any): Promise<any>;
             getProjectTreeSubNodes(params: any): Promise<any>;
             getProjectTreeSubNodesByLazy(params: any): Promise<any>;
+            getProjectTreeChildren(params: any): Promise<any>;
+            getProjectTreeChildrenByLazy(params: any): Promise<any>;
             getDataSetList(params: any): Promise<any>;
             getCadDataSetList(params: any): Promise<any>;
             // getExtrudeTexList(sceneTree: any): Promise<any>;

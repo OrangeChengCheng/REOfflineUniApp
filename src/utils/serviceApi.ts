@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2025-11-19 14:50:45
- * @LastEditTime: 2026-04-10 11:37:08
+ * @LastEditTime: 2026-04-10 14:23:27
  */
 import {
     isRoomExistService,
@@ -9,6 +9,8 @@ import {
     getSceneById,
     getProjectTreeSubNodes,
     getProjectTreeSubNodesByLazy,
+    getProjectTreeChildren,
+    getProjectTreeChildrenByLazy,
     getSingleSceneTreeById,
     getProjectTree,
     getCadDatasetFiles,
@@ -25,6 +27,8 @@ interface ApiMethods {
     getModelTree(params: any): Promise<any>;
     getProjectTreeSubNodes(params: any): Promise<any>;
     getProjectTreeSubNodesByLazy(params: any): Promise<any>;
+    getProjectTreeChildren(params: any): Promise<any>;
+    getProjectTreeChildrenByLazy(params: any): Promise<any>;
     getDataSetList(params: any): Promise<any>;
     getCadDataSetList(params: any): Promise<any>;
     // getExtrudeTexList(sceneTree: any): Promise<any>;
@@ -104,7 +108,7 @@ const api: ApiMethods = {
     },
 
     // MARK 请求模型目录树子节点-懒加载
-    getProjectTreeSubNodesByLazy: async(paran: any): Promise<any> => {
+    getProjectTreeSubNodesByLazy: async (paran: any): Promise<any> => {
         try {
             const res = await getProjectTreeSubNodesByLazy(paran);
             if (res.isSuccess) {
@@ -117,6 +121,38 @@ const api: ApiMethods = {
             throw error;
         }
     },
+
+    // MARK 请求模型目录树下的构件ID
+    getProjectTreeChildren: async (paran: any): Promise<any> => {
+        try {
+            const res = await getProjectTreeChildren(paran);
+            if (res.isSuccess) {
+                return res.data;
+            } else {
+                uni.$re.unipluginLog(res.errMsg || '构件ID懒加载获取失败');
+                throw new Error(res.errMsg || '构件ID懒加载获取失败');
+            }
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // MARK 请求模型目录树下的构件ID-懒加载
+    getProjectTreeChildrenByLazy: async (paran: any): Promise<any> => {
+        try {
+            const res = await getProjectTreeChildrenByLazy(paran);
+            if (res.isSuccess) {
+                return res.data;
+            } else {
+                uni.$re.unipluginLog(res.errMsg || '构件ID懒加载获取失败');
+                throw new Error(res.errMsg || '构件ID懒加载获取失败');
+            }
+        } catch (error) {
+            throw error;
+        }
+    },
+
+
 
     // MARK Service 获取开挖纹理列表
     // getExtrudeTexList: async (sceneTree: any): Promise<any> => {

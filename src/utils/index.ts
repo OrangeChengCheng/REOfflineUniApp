@@ -22,6 +22,8 @@ export default {
             getModelTree: serviceApi.getModelTree,
             getProjectTreeSubNodes: serviceApi.getProjectTreeSubNodes,
             getProjectTreeSubNodesByLazy: serviceApi.getProjectTreeSubNodesByLazy,
+            getProjectTreeChildren: serviceApi.getProjectTreeChildren,
+            getProjectTreeChildrenByLazy: serviceApi.getProjectTreeChildrenByLazy,
             getDataSetList: serviceApi.getDataSetList,
             getCadDataSetList: serviceApi.getCadDataSetList,
             // getExtrudeTexList: serviceApi.getExtrudeTexList,

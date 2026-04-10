@@ -1,7 +1,7 @@
 <!--
  * @Author: Lemon C
  * @Date: 2026-01-22 10:16:05
- * @LastEditTime: 2026-04-10 11:47:01
+ * @LastEditTime: 2026-04-10 16:05:14
 -->
 <template>
     <view class="content">
@@ -39,6 +39,10 @@
             <view class="btn-line">
                 <el-button type="primary" @click.stop="getTreeNode(offlineFileList[0])">获取树子节点</el-button>
                 <el-button type="primary" @click.stop="getTreeNode_lazy(offlineFileList[6])">获取树子节点-懒加载</el-button>
+            </view>
+            <view class="btn-line">
+                <el-button type="primary" @click.stop="getElemIdList(offlineFileList[0])">获取构件id集合</el-button>
+                <el-button type="primary" @click.stop="getElemIdList_lazy(offlineFileList[6])">获取构件id集合-懒加载</el-button>
             </view>
         </view>
         <view class="progress-area">
@@ -664,7 +668,7 @@ const handle_getRoomName = (treeData: any, formatType: any = 0) => {
 
 const getTreeNode = async (item: any) => {
     file_store.fileName = item.fileName;
-    
+
     // 获取模型目录树
     const res = await uni.$service.getModelTree({ dataSetId: item.id });
     const treeData = dataTool.handle_formatDataSetTree(res);
@@ -684,7 +688,7 @@ const getTreeNode = async (item: any) => {
 };
 const getTreeNode_lazy = async (item: any) => {
     file_store.fileName = item.fileName;
-    
+
     // 获取模型目录树
     const res = await uni.$service.getModelTree({ dataSetId: item.id });
     const treeData = dataTool.handle_formatDataSetTree(res);
@@ -701,6 +705,87 @@ const getTreeNode_lazy = async (item: any) => {
     uni.showModal({
         title: '获取结果',
         content: JSON.stringify(res2),
+    });
+};
+const getElemIdList = async (item: any) => {
+    file_store.fileName = item.fileName;
+
+    const params = {
+        dataSets: [
+            {
+                dataSetId: '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee',
+                childNodeId: '164',
+            },
+            {
+                dataSetId: '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee',
+                childNodeId: '165',
+            },
+            {
+                dataSetId: '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee',
+                childNodeId: '166',
+            },
+            {
+                dataSetId: '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee',
+                childNodeId: '167',
+            },
+            {
+                dataSetId: '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee',
+                childNodeId: '168',
+            },
+            {
+                dataSetId: '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee',
+                childNodeId: '169',
+            },
+            {
+                dataSetId: '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee',
+                childNodeId: '170',
+            },
+            {
+                dataSetId: '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee',
+                childNodeId: '171',
+            },
+            {
+                dataSetId: '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee',
+                childNodeId: '172',
+            },
+            {
+                dataSetId: '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee',
+                childNodeId: '173',
+            },
+            {
+                dataSetId: '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee',
+                childNodeId: '174',
+            },
+            {
+                dataSetId: '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee',
+                childNodeId: '175',
+            },
+            {
+                dataSetId: '3a1e60e5-00f9-3f4d-a9f4-a7a4e497a7ee',
+                childNodeId: '176',
+            },
+        ],
+    };
+    const res = await uni.$service.getProjectTreeChildren(params);
+
+    uni.showModal({
+        title: '获取结果',
+        content: JSON.stringify(res),
+    });
+};
+const getElemIdList_lazy = async (item: any) => {
+    file_store.fileName = item.fileName;
+
+    const params = {
+        dataSetId: '3a1dac58-810a-6b00-995a-472456285d3d',
+        hostFileId: -1,
+        levelCode: '1-7017-10391-10545-9499-6790',
+    };
+    const res = await uni.$service.getProjectTreeChildrenByLazy(params);
+
+    uni.showModal({
+        title: '获取结果',
+        content: JSON.stringify(res),
     });
 };
 </script>
