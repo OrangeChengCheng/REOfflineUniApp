@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2026-03-20 11:31:20
- * @LastEditTime: 2026-04-09 17:33:55
+ * @LastEditTime: 2026-04-10 14:20:15
  */
 
 import { useFileStore } from '@/stores/file';
@@ -492,6 +492,161 @@ export const dataSet_v3_dataSetRootNodes = createApiHandler(
 );
 
 
+// 请求模型目录树子节点
+export const dataSet_v3_dataSetFileTreeNodes = createApiHandler(
+    ["dataSetId", "fileIntId", "uniqueId"],
+    async function dataSet_v3_dataSetFileTreeNodes(data: any) {
+        const file_store = useFileStore();
+        const fileRootPath = `${file_store.rootPath}/${file_store.fileName}`;
+        const filePath_res = `${fileRootPath}/res`;
+        const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
+
+        // 获取当前资源是场景还是单数据集
+        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.useFileUniToApp({ type: "getAllSubFileList", data: { filePath: filePath_res } }, cb));
+        if (!res_folder.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+        const fileList = res_folder.data;
+        const allFolders = fileList.filter((item: any) => item.isDirectory);
+        // 判断是否存在「文件夹名 = dataSetId」的匹配, 如果存在和数据集id相同的文件夹，代表文件是场景类型
+        const isScene = allFolders.some((folder: any) =>
+            [data.dataSetId].includes(folder.fileName)
+        );
+
+        // 获取数据库文件路径
+        const dbPath = !isScene ? `${fileRootPath}/data/${data.dataSetId}.db` : `${fileRootPath}/data/${data.dataSetId}/${data.dataSetId}.db`;
+        const tableName = `${dataSetId_noline}_treenode`;
+
+        // 判断目录树子节点表是否存在
+        const sql_treenodeExist = `SELECT count(*) FROM sqlite_master WHERE type='table' AND name="${tableName}";`;
+        const res_treenodeExist: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_treenodeExist }, cb));
+        if (!res_treenodeExist.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+        if (res_treenodeExist.data[0] && !res_treenodeExist.data[0]["count(*)"]) return { data: [], isSuccess: true, errMsg: "", };
+
+        // 获取子节点数据
+        const sql_treenode = `SELECT * FROM "${tableName}" WHERE HostFile_Id = "${data.fileIntId}";`;
+        const res_treenode: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_treenode }, cb));
+        if (!res_treenode.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+
+        const nodeList: any[] = res_treenode.data;
+        // 构件目录树结构
+        // --------------------------------------------------------------------
+        // 【步骤1】创建所有节点（不处理父子关系，只初始化节点）
+        // --------------------------------------------------------------------
+        const allNodes: any[] = []; // 所有节点
+        for (const node of nodeList) {
+            const { TreeNode_int_Id, TreeNode_Name, Parent_Node_Int_Id } = node;
+
+            // === 创建树节点 ===
+            const treeNode: any = {
+                nodeId: TreeNode_int_Id.toString(),
+                name: TreeNode_Name,
+                uniqueId: "",
+                parentNodeId: Parent_Node_Int_Id.toString(),
+                nodes: [],
+            };
+            allNodes.push(treeNode);
+        }
+
+        // --------------------------------------------------------------------
+        // 【步骤2】建立父子映射关系创建目录树结构（核心！）
+        // --------------------------------------------------------------------
+        const nodeMap = new Map<string, any>();
+        const rootNodes: any[] = [];
+
+        allNodes.forEach(n => nodeMap.set(n.nodeId, n));//构件map结构，便于查找
+        allNodes.forEach(node => {
+            if (node.parentNodeId === '-1') {
+                rootNodes.push(node);
+            } else {
+                const parent = nodeMap.get(node.parentNodeId);// 查找父节点
+                parent && parent.nodes.push(node);
+            }
+        });
+
+        // --------------------------------------------------------------------
+        // 【步骤3】深度优先递归赋值 uniqueId（子孙全走完再同级）
+        // --------------------------------------------------------------------
+        let count = 2;//每个节点都需要不同的数据，且顺序唯一
+        const setUniqueId = (node: any) => {
+            // 先给当前节点赋值
+            node.uniqueId = `2_${count}`;
+            count++;
+            // 递归遍历所有子节点（深度优先：子孙全部走完）
+            if (node.nodes && node.nodes.length) {
+                node.nodes.forEach((child: any) => setUniqueId(child));
+            }
+        };
+        // 从根节点开始赋值
+        rootNodes.forEach(node => setUniqueId(node));
+
+        // --------------------------------------------------------------------
+        // 【步骤4】递归删除所有节点不需要的字段
+        // --------------------------------------------------------------------
+        const deleteParentId = (node: any) => {
+            delete node.parentNodeId;
+            if (node.nodes && node.nodes.length) {
+                node.nodes.forEach((child: any) => deleteParentId(child));
+            }
+        };
+        rootNodes.forEach(node => deleteParentId(node));
+
+        return { data: rootNodes, isSuccess: true, errMsg: "", };
+    }
+);
+
+// 请求模型目录树子节点-懒加载
+export const dataSet_v3_dataSetFileTreeNodes_lazy = createApiHandler(
+    ["dataSetId", "parentNodeIntId", "hostFileId"],
+    async function dataSet_v3_dataSetFileTreeNodes_lazy(data: any) {
+        const file_store = useFileStore();
+        const fileRootPath = `${file_store.rootPath}/${file_store.fileName}`;
+        const filePath_res = `${fileRootPath}/res`;
+        const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
+
+        // 获取当前资源是场景还是单数据集
+        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.useFileUniToApp({ type: "getAllSubFileList", data: { filePath: filePath_res } }, cb));
+        if (!res_folder.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+        const fileList = res_folder.data;
+        const allFolders = fileList.filter((item: any) => item.isDirectory);
+        // 判断是否存在「文件夹名 = dataSetId」的匹配, 如果存在和数据集id相同的文件夹，代表文件是场景类型
+        const isScene = allFolders.some((folder: any) =>
+            [data.dataSetId].includes(folder.fileName)
+        );
+
+        // 获取数据库文件路径
+        const dbPath = !isScene ? `${fileRootPath}/data/${data.dataSetId}.db` : `${fileRootPath}/data/${data.dataSetId}/${data.dataSetId}.db`;
+        const tableName = `${dataSetId_noline}_treenode`;
+
+        // 判断目录树子节点表是否存在
+        const sql_treenodeExist = `SELECT count(*) FROM sqlite_master WHERE type='table' AND name="${tableName}";`;
+        const res_treenodeExist: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_treenodeExist }, cb));
+        if (!res_treenodeExist.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+        if (res_treenodeExist.data[0] && !res_treenodeExist.data[0]["count(*)"]) return { data: [], isSuccess: true, errMsg: "", };
+
+        // 获取子节点数据
+        const sql_treenode = `SELECT * FROM "${tableName}" WHERE HostFile_Id = ${data.hostFileId} AND Parent_Node_Int_Id = ${data.parentNodeIntId}  ORDER BY TreeNode_int_Id ASC;`;
+        const res_treenode: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_treenode }, cb));
+        if (!res_treenode.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+
+        const nodeList: any[] = res_treenode.data;
+        // 构件目录树结构
+        const rootNodes: any[] = []; // 所有节点
+        for (const node of nodeList) {
+            const { TreeNode_int_Id, TreeNode_Name, LevelCode } = node;
+
+            // === 创建树节点 ===
+            const treeNode: any = {
+                nodeIntId: TreeNode_int_Id,
+                nodeName: TreeNode_Name,
+                levelCode: LevelCode,
+            };
+            rootNodes.push(treeNode);
+        }
+        
+        return { data: rootNodes, isSuccess: true, errMsg: "", };
+    }
+);
+
+
 // 是否具有空间信息
 export const engine_v3_room_exists = createApiHandler(
     ["dataSetId"],
@@ -925,6 +1080,8 @@ const urlToHandler: Record<string, (data: any) => Promise<any>> = {
     "/scene/v3": scene_v3,
     "/sceneTree/v3/getTreeById": sceneTree_v3_getTreeById,
     "/dataSet/v3/dataSetRootNodes": dataSet_v3_dataSetRootNodes,
+    "/dataSet/v3/dataSetFileTreeNodes": dataSet_v3_dataSetFileTreeNodes,
+    "/dataSet/v3/dataSetFileTreeNodes/lazy": dataSet_v3_dataSetFileTreeNodes_lazy,
     "/engine/v3/room/exists": engine_v3_room_exists,
     "/engine/v3/room/list": engine_v3_room_list,
     "/dataSet/v3/viewDataSetModel": dataSet_v3_viewDataSetModel,

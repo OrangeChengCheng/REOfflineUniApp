@@ -1,7 +1,7 @@
 <!--
  * @Author: Lemon C
  * @Date: 2026-01-22 10:16:05
- * @LastEditTime: 2026-04-09 17:48:30
+ * @LastEditTime: 2026-04-10 11:47:01
 -->
 <template>
     <view class="content">
@@ -35,6 +35,10 @@
             <view class="btn-line">
                 <el-button type="primary" @click.stop="getCAD(offlineFileList[4])">获取CAD信息</el-button>
                 <el-button type="primary" @click.stop="getRoomInfo(offlineFileList[5])">获取房间信息</el-button>
+            </view>
+            <view class="btn-line">
+                <el-button type="primary" @click.stop="getTreeNode(offlineFileList[0])">获取树子节点</el-button>
+                <el-button type="primary" @click.stop="getTreeNode_lazy(offlineFileList[6])">获取树子节点-懒加载</el-button>
             </view>
         </view>
         <view class="progress-area">
@@ -112,6 +116,13 @@ const offlineFileList = ref<any[]>([
         type: 1,
         filePath: 'storage/emulated/0/Android/data/com.realengine.androidofflineapp/files/REOfflineDoc/[model]BIMFACE示例模型.rvt',
         id: '3a1d16de-2ced-0f6a-6b6c-dc5f90cf1624',
+        dataSetTypeStr: 'bim',
+    },
+    {
+        fileName: '[model]实施版_建筑.ifc',
+        type: 1,
+        filePath: 'storage/emulated/0/Android/data/com.realengine.androidofflineapp/files/REOfflineDoc/[model]实施版_建筑.ifc',
+        id: '3a1dac58-810a-6b00-995a-472456285d3d',
         dataSetTypeStr: 'bim',
     },
 ]);
@@ -649,6 +660,48 @@ const handle_getRoomName = (treeData: any, formatType: any = 0) => {
         return item.name;
     });
     return roomFilesName;
+};
+
+const getTreeNode = async (item: any) => {
+    file_store.fileName = item.fileName;
+    
+    // 获取模型目录树
+    const res = await uni.$service.getModelTree({ dataSetId: item.id });
+    const treeData = dataTool.handle_formatDataSetTree(res);
+
+    // 获取目录树子节点
+    let params = {
+        dataSetId: item.id,
+        fileIntId: treeData[0].fileIntId,
+        uniqueId: treeData[0].uniqueId,
+    };
+    const res2 = await uni.$service.getProjectTreeSubNodes(params);
+
+    uni.showModal({
+        title: '获取结果',
+        content: JSON.stringify(res2),
+    });
+};
+const getTreeNode_lazy = async (item: any) => {
+    file_store.fileName = item.fileName;
+    
+    // 获取模型目录树
+    const res = await uni.$service.getModelTree({ dataSetId: item.id });
+    const treeData = dataTool.handle_formatDataSetTree(res);
+
+    // 获取目录树子节点-懒加载
+    let params = {
+        dataSetId: item.id,
+        parentNodeIntId: 10545,
+        // parentNodeIntId: treeData[0].nodeIntId ? Number(treeData[0].nodeIntId) : Number(treeData[0].fileIntId),
+        hostFileId: Number(treeData[0].fileIntId),
+    };
+    const res2 = await uni.$service.getProjectTreeSubNodesByLazy(params);
+
+    uni.showModal({
+        title: '获取结果',
+        content: JSON.stringify(res2),
+    });
 };
 </script>
 

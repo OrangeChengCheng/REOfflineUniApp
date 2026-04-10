@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-14 10:05:14
- * @LastEditTime: 2026-04-09 17:14:42
+ * @LastEditTime: 2026-04-10 11:42:27
  */
 import config from './config'
 import reApi from './reApi'
@@ -20,6 +20,8 @@ export default {
             getSceneInfo: serviceApi.getSceneInfo,
             getSceneTree: serviceApi.getSceneTree,
             getModelTree: serviceApi.getModelTree,
+            getProjectTreeSubNodes: serviceApi.getProjectTreeSubNodes,
+            getProjectTreeSubNodesByLazy: serviceApi.getProjectTreeSubNodesByLazy,
             getDataSetList: serviceApi.getDataSetList,
             getCadDataSetList: serviceApi.getCadDataSetList,
             // getExtrudeTexList: serviceApi.getExtrudeTexList,

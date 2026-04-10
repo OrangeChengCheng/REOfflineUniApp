@@ -1,12 +1,14 @@
 /*
  * @Author: Lemon C
  * @Date: 2025-11-19 14:50:45
- * @LastEditTime: 2026-04-09 17:47:01
+ * @LastEditTime: 2026-04-10 11:37:08
  */
 import {
     isRoomExistService,
     getProjectModel,
     getSceneById,
+    getProjectTreeSubNodes,
+    getProjectTreeSubNodesByLazy,
     getSingleSceneTreeById,
     getProjectTree,
     getCadDatasetFiles,
@@ -21,6 +23,8 @@ interface ApiMethods {
     getSceneInfo(params: any): Promise<any>;
     getSceneTree(params: any, sceneInfo: any): Promise<any>;
     getModelTree(params: any): Promise<any>;
+    getProjectTreeSubNodes(params: any): Promise<any>;
+    getProjectTreeSubNodesByLazy(params: any): Promise<any>;
     getDataSetList(params: any): Promise<any>;
     getCadDataSetList(params: any): Promise<any>;
     // getExtrudeTexList(sceneTree: any): Promise<any>;
@@ -78,6 +82,36 @@ const api: ApiMethods = {
             } else {
                 uni.$re.unipluginLog(res.errMsg || '模型目录树获取失败');
                 throw new Error(res.errMsg || '模型目录树获取失败');
+            }
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // MARK 请求模型目录树子节点
+    getProjectTreeSubNodes: async (paran: any): Promise<any> => {
+        try {
+            const res = await getProjectTreeSubNodes(paran);
+            if (res.isSuccess) {
+                return res.data;
+            } else {
+                uni.$re.unipluginLog(res.errMsg || '目录树子节点获取失败');
+                throw new Error(res.errMsg || '目录树子节点获取失败');
+            }
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // MARK 请求模型目录树子节点-懒加载
+    getProjectTreeSubNodesByLazy: async(paran: any): Promise<any> => {
+        try {
+            const res = await getProjectTreeSubNodesByLazy(paran);
+            if (res.isSuccess) {
+                return res.data;
+            } else {
+                uni.$re.unipluginLog(res.errMsg || '目录树子节点懒加载获取失败');
+                throw new Error(res.errMsg || '目录树子节点懒加载获取失败');
             }
         } catch (error) {
             throw error;

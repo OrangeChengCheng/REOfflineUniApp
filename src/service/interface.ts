@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-04-19 12:22:25
- * @LastEditTime: 2026-04-09 16:39:03
+ * @LastEditTime: 2026-04-10 11:34:14
  */
 import { requestPost, requestGet } from '@/service/offlineService';
 
@@ -34,6 +34,16 @@ export function getSingleSceneTreeById(data: any) {
 // 获取模型目录树
 export function getProjectTree(data: any) {
     return requestPost('/dataSet/v3/dataSetRootNodes', data);
+}
+
+// 请求模型目录树子节点
+export function getProjectTreeSubNodes(data: any) {
+    return requestPost('/dataSet/v3/dataSetFileTreeNodes', data);
+}
+
+// 请求模型目录树子节点-懒加载
+export function getProjectTreeSubNodesByLazy(data: any) {
+    return requestPost('/dataSet/v3/dataSetFileTreeNodes/lazy', data);
 }
 
 // 是否具有空间信息

@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-13 18:01:53
- * @LastEditTime: 2026-04-09 17:14:53
+ * @LastEditTime: 2026-04-10 10:21:02
  */
 
 
@@ -34,6 +34,8 @@ declare global {
             getSceneInfo(params: any): Promise<any>;
             getSceneTree(params: any, sceneInfo: any): Promise<any>;
             getModelTree(params: any): Promise<any>;
+            getProjectTreeSubNodes(params: any): Promise<any>;
+            getProjectTreeSubNodesByLazy(params: any): Promise<any>;
             getDataSetList(params: any): Promise<any>;
             getCadDataSetList(params: any): Promise<any>;
             // getExtrudeTexList(sceneTree: any): Promise<any>;
