@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2026-03-20 11:31:20
- * @LastEditTime: 2026-04-10 16:23:46
+ * @LastEditTime: 2026-04-13 10:40:51
  */
 
 import { useFileStore } from '@/stores/file';
@@ -827,6 +827,90 @@ export const engine_v3_room_list = createApiHandler(
     }
 );
 
+
+
+// 获取房间构件
+export const element_v3_getRoomTreeChildren = createApiHandler(
+    ["dataSetId", "childNodeId"],
+    async function element_v3_getRoomTreeChildren(data: any) {
+        const file_store = useFileStore();
+        const dbPath = `${file_store.rootPath}/${file_store.fileName}/data/${data.dataSetId}.db`;
+        const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
+
+        //获取房间构件信息
+        const tableName = `${dataSetId_noline}_room_elements`;
+        const sql_roomElem = `SELECT * FROM "${tableName}" WHERE Parent_Node_Int_Id = ${Number(data.childNodeId)};`;
+        const res_roomElem: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_roomElem }, cb));
+        if (!res_roomElem.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+
+        const elemIdList = res_roomElem.data.map((item: any) => item.Elem_int_Id);
+        const { HostFile_Id } = res_roomElem.data[0];
+
+        return { data: { elemIntIds: elemIdList, hostFileId: HostFile_Id }, isSuccess: true, errMsg: "", };
+    }
+);
+
+// 获取房间信息
+export const engine_v3_room_element_parameter_list = createApiHandler(
+    ["dataSetId", "elementIntId"],
+    async function engine_v3_room_element_parameter_list(data: any) {
+        const file_store = useFileStore();
+        const dbPath = `${file_store.rootPath}/${file_store.fileName}/data/${data.dataSetId}.db`;
+        const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
+
+        //获取房间构件信息
+        const sql_roomElem = `SELECT * FROM "${dataSetId_noline}_room_elements" WHERE Elem_int_Id = ${Number(data.elementIntId)};`;
+        const res_roomElem: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_roomElem }, cb));
+        if (!res_roomElem.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+
+        const { Elem_Id } = res_roomElem.data[0];
+
+        //获取房间构件属性信息
+        const sql_roomElemAttr = `SELECT * FROM "${dataSetId_noline}_room_element_parameter" WHERE Elem_Id = "${Elem_Id}";`;
+        const res_roomElemAttr: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_roomElemAttr }, cb));
+        if (!res_roomElemAttr.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+
+        const nodeList: any[] = res_roomElemAttr.data;
+
+        // 构件树结构
+        // --------------------------------------------------------------------
+        // 【步骤1】创建所有节点（不处理父子关系，只初始化节点）
+        // --------------------------------------------------------------------
+        const allNodes: any[] = []; // 所有节点
+        for (const node of nodeList) {
+            const { Param_Name, Param_Value, Param_Group, Unit_Type } = node;
+
+            // === 创建树节点 ===
+            const treeNode: any = {
+                roomParamName: Param_Name,
+                roomParamValue: Param_Value,
+                roomParamGroup: Param_Group,
+                roomParamType: Unit_Type,
+            };
+            allNodes.push(treeNode);
+        }
+
+        // --------------------------------------------------------------------
+        // 【步骤2】建立父子映射关系创建树结构（核心！）
+        // --------------------------------------------------------------------
+        const rootNodes: any[] = [];
+        allNodes.forEach(node => {
+            const group = node.roomParamGroup;
+            const find = rootNodes.find((item: any) => item.roomParamGroup === group);
+            if (find) {
+                find.roomParams.push(node);
+            } else {
+                const roomParamGroup = { roomParamGroup: group, roomParams: [node] };
+                rootNodes.push(roomParamGroup);
+            }
+        });
+
+        return { data: rootNodes, isSuccess: true, errMsg: "", };
+    }
+);
+
+
+
 // MOD-- 数据集 相关
 // 获取工程信息模型
 export const dataSet_v3_viewDataSetModel = createApiHandler(
@@ -1179,6 +1263,8 @@ const urlToHandler: Record<string, (data: any) => Promise<any>> = {
     "/element/v3/getTreeChildren/lazy": element_v3_getTreeChildren_lazy,
     "/engine/v3/room/exists": engine_v3_room_exists,
     "/engine/v3/room/list": engine_v3_room_list,
+    "/element/v3/getRoomTreeChildren": element_v3_getRoomTreeChildren,
+    "/engine/v3/room/element/parameter/list": engine_v3_room_element_parameter_list,
     "/dataSet/v3/viewDataSetModel": dataSet_v3_viewDataSetModel,
     "/cadTree/v3/file/list": cadTree_v3_file_list,
 };

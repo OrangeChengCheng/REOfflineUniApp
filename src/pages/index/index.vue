@@ -1,7 +1,7 @@
 <!--
  * @Author: Lemon C
  * @Date: 2026-01-22 10:16:05
- * @LastEditTime: 2026-04-10 16:05:14
+ * @LastEditTime: 2026-04-13 10:44:23
 -->
 <template>
     <view class="content">
@@ -34,7 +34,6 @@
             </view>
             <view class="btn-line">
                 <el-button type="primary" @click.stop="getCAD(offlineFileList[4])">获取CAD信息</el-button>
-                <el-button type="primary" @click.stop="getRoomInfo(offlineFileList[5])">获取房间信息</el-button>
             </view>
             <view class="btn-line">
                 <el-button type="primary" @click.stop="getTreeNode(offlineFileList[0])">获取树子节点</el-button>
@@ -43,6 +42,10 @@
             <view class="btn-line">
                 <el-button type="primary" @click.stop="getElemIdList(offlineFileList[0])">获取构件id集合</el-button>
                 <el-button type="primary" @click.stop="getElemIdList_lazy(offlineFileList[6])">获取构件id集合-懒加载</el-button>
+            </view>
+            <view class="btn-line">
+                <el-button type="primary" @click.stop="getRoomList(offlineFileList[5])">获取房间列表</el-button>
+                <el-button type="primary" @click.stop="getRoomInfo(offlineFileList[5])">获取房间信息</el-button>
             </view>
         </view>
         <view class="progress-area">
@@ -619,36 +622,6 @@ const getCAD = async (item: any) => {
 
     uni.$re.showOfflineEngine(engineData, (res: any) => {});
 };
-const getRoomInfo = async (item: any) => {
-    file_store.fileName = item.fileName;
-
-    // 获取模型目录树
-    const res = await uni.$service.getModelTree({ dataSetId: item.id });
-    const treeData = dataTool.handle_formatDataSetTree(res);
-
-    const fileNames = handle_getRoomName(treeData);
-    let params = {
-        dataSetId: item.id,
-        fileNames: fileNames,
-    };
-    let data = await uni.$service.getRoomList(params);
-    data = data.filter((item: any) => {
-        let rooms = item.rooms;
-        if (rooms[0] && item.elementIntIds) {
-            return true;
-        } else {
-            return false;
-        }
-    });
-    let roomTreeData = data.map((item: any) => {
-        item['nodeName'] = item.hostFileName;
-        item['nodeId'] = item.hostFileId;
-        item['nodes'] = item.rooms;
-        return item;
-    });
-
-    uni.$re.unipluginLog(JSON.stringify(roomTreeData));
-};
 // MARK data 获取房间名称
 const handle_getRoomName = (treeData: any, formatType: any = 0) => {
     // 带有房间和图纸信息的模型来源(根据srcCatalog字段判断来源)
@@ -786,6 +759,59 @@ const getElemIdList_lazy = async (item: any) => {
     uni.showModal({
         title: '获取结果',
         content: JSON.stringify(res),
+    });
+};
+const getRoomList = async (item: any) => {
+    file_store.fileName = item.fileName;
+
+    // 获取模型目录树
+    const res = await uni.$service.getModelTree({ dataSetId: item.id });
+    const treeData = dataTool.handle_formatDataSetTree(res);
+
+    const fileNames = handle_getRoomName(treeData);
+    let params = {
+        dataSetId: item.id,
+        fileNames: fileNames,
+    };
+    let data = await uni.$service.getRoomList(params);
+    data = data.filter((item: any) => {
+        let rooms = item.rooms;
+        if (rooms[0] && item.elementIntIds) {
+            return true;
+        } else {
+            return false;
+        }
+    });
+    let roomTreeData = data.map((item: any) => {
+        item['nodeName'] = item.hostFileName;
+        item['nodeId'] = item.hostFileId;
+        item['nodes'] = item.rooms;
+        return item;
+    });
+
+    uni.$re.unipluginLog(JSON.stringify(roomTreeData));
+};
+const getRoomInfo = async (item: any) => {
+    file_store.fileName = item.fileName;
+
+    const params = {
+        dataSetId: item.id,
+        childNodeId: '602',
+    };
+    const res = await uni.$service.getRoomElement(params);
+
+    let params2 = {
+        dataSetId: item.id,
+        elementIntId: '',
+    };
+    if (res.elemIntIds.length) {
+        params2['elementIntId'] = res.elemIntIds[0] + '';
+    }
+    const attributeData = await uni.$service.getRoomInfo(params2);
+
+    uni.showModal({
+        title: 'attributeData',
+        content: JSON.stringify(attributeData),
     });
 };
 </script>

@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2025-11-19 14:50:45
- * @LastEditTime: 2026-04-10 14:23:27
+ * @LastEditTime: 2026-04-10 16:54:38
  */
 import {
     isRoomExistService,
@@ -15,6 +15,8 @@ import {
     getProjectTree,
     getCadDatasetFiles,
     getRoomList,
+    getRoomElement,
+    getRoomInfo,
 } from '@/service/interface';
 
 import dataTool from '@/utils/dataTool';
@@ -34,6 +36,8 @@ interface ApiMethods {
     // getExtrudeTexList(sceneTree: any): Promise<any>;
     isRoomExistService(params: any): Promise<any>;
     getRoomList(params: any): Promise<any>;
+    getRoomElement(params: any): Promise<any>;
+    getRoomInfo(params: any): Promise<any>;
 }
 
 const api: ApiMethods = {
@@ -274,6 +278,36 @@ const api: ApiMethods = {
     getRoomList: async (paran: any): Promise<any> => {
         try {
             const res = await getRoomList(paran);
+            if (res.isSuccess) {
+                return res.data;
+            } else {
+                uni.$re.unipluginLog(res.errMsg || '空间信息获取失败');
+                throw new Error(res.errMsg || '空间信息获取失败');
+            }
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // MARK 获取房间构件
+    getRoomElement:async (paran: any): Promise<any> => {
+        try {
+            const res = await getRoomElement(paran);
+            if (res.isSuccess) {
+                return res.data;
+            } else {
+                uni.$re.unipluginLog(res.errMsg || '空间信息获取失败');
+                throw new Error(res.errMsg || '空间信息获取失败');
+            }
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // MARK 获取房间信息
+    getRoomInfo:async (paran: any): Promise<any> => {
+        try {
+            const res = await getRoomInfo(paran);
             if (res.isSuccess) {
                 return res.data;
             } else {

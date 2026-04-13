@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-13 18:01:53
- * @LastEditTime: 2026-04-10 10:21:02
+ * @LastEditTime: 2026-04-10 16:54:16
  */
 
 
@@ -43,6 +43,8 @@ declare global {
             // getExtrudeTexList(sceneTree: any): Promise<any>;
             isRoomExistService(params: any): Promise<any>;
             getRoomList(params: any): Promise<any>;
+            getRoomElement(params: any): Promise<any>;
+            getRoomInfo(params: any): Promise<any>;
         };
         $tool: {
             toPromise<T = any>(fn: (callback: (res: any) => void) => void): Promise<T>;

@@ -29,6 +29,8 @@ export default {
             // getExtrudeTexList: serviceApi.getExtrudeTexList,
             isRoomExistService: serviceApi.isRoomExistService,
             getRoomList: serviceApi.getRoomList,
+            getRoomElement: serviceApi.getRoomElement,
+            getRoomInfo: serviceApi.getRoomInfo,
         };
         uni.$re = {
             unipluginLog: reApi.unipluginLog,

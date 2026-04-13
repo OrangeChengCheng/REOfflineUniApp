@@ -66,6 +66,16 @@ export function getRoomList(data: any) {
     return requestPost('/engine/v3/room/list', data);
 }
 
+// 获取房间构件
+export function getRoomElement(data: any) {
+    return requestPost('/element/v3/getRoomTreeChildren', data);
+}
+
+// 获取房间信息
+export function getRoomInfo(data: any) {
+    return requestPost('/engine/v3/room/element/parameter/list', data);
+}
+
 
 // MOD-- 数据集 相关
 // 获取工程信息模型
