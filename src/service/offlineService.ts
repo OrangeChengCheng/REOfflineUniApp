@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2026-03-20 11:31:20
- * @LastEditTime: 2026-04-13 10:40:51
+ * @LastEditTime: 2026-04-14 10:23:01
  */
 
 import { useFileStore } from '@/stores/file';
@@ -900,8 +900,7 @@ export const engine_v3_room_element_parameter_list = createApiHandler(
             if (find) {
                 find.roomParams.push(node);
             } else {
-                const roomParamGroup = { roomParamGroup: group, roomParams: [node] };
-                rootNodes.push(roomParamGroup);
+                rootNodes.push({ roomParamGroup: group, roomParams: [node] });
             }
         });
 
@@ -1228,6 +1227,300 @@ export const cadTree_v3_file_list = createApiHandler(
 );
 
 
+// MOD-- 属性 相关
+// 查询模型属性
+export const element_v3_getElementParam = createApiHandler(
+    ["dataSetId", "elementIntId", "isQueryExtend"],
+    async function element_v3_getElementParam(data: any) {
+        uni.$re.unipluginLog("-----------");
+        const file_store = useFileStore();
+        const fileRootPath = `${file_store.rootPath}/${file_store.fileName}`;
+        const filePath_res = `${fileRootPath}/res`;
+        const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
+
+        // 获取当前资源是场景还是单数据集
+        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.useFileUniToApp({ type: "getAllSubFileList", data: { filePath: filePath_res } }, cb));
+        if (!res_folder.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+        const fileList = res_folder.data;
+        const allFolders = fileList.filter((item: any) => item.isDirectory);
+        // 判断是否存在「文件夹名 = dataSetId」的匹配, 如果存在和数据集id相同的文件夹，代表文件是场景类型
+        const isScene = allFolders.some((folder: any) =>
+            [data.dataSetId].includes(folder.fileName)
+        );
+
+        // 获取数据库文件路径
+        const dbPath = !isScene ? `${fileRootPath}/data/${data.dataSetId}.db` : `${fileRootPath}/data/${data.dataSetId}/${data.dataSetId}.db`;
+
+        // 获取属性信息
+        const sql_param = `
+            SELECT *
+            FROM "${dataSetId_noline}_element_parameter"
+            WHERE Params_Id IN (
+                SELECT Params_Id 
+                FROM "${dataSetId_noline}_elem_elemparam_map"  
+                WHERE Elem_int_Id = "${data.elementIntId}"
+            );
+        `
+        const res_param: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_param }, cb));
+        if (!res_param.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+
+        const res_paramList = res_param.data;
+
+        // 获取扩展属性信息（只有场景中的模型才有扩展属性）
+        let res_paramExtendList: any[] = [];
+        let res_paramExtendGroupList: any[] = [];
+        if (isScene && data.isQueryExtend) {
+            const sql_param_extend = `SELECT * FROM "${dataSetId_noline}_element_parameter_extend" WHERE Elem_int_Id = ${data.elementIntId};`;
+            const res_param_extend: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_param_extend }, cb));
+            if (!res_param_extend.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+
+            res_paramExtendList = res_param_extend.data;
+            const paramGroupIdList_t = res_paramExtendList.map((el: any) => el.Param_Group);
+            const paramGroupIdList = [...new Set(paramGroupIdList_t)]; // 去重
+
+            const sql_param_extend_group = `SELECT * FROM "${dataSetId_noline}_parameter_extend_group" WHERE Id IN (${paramGroupIdList});`;
+            const res_param_extend_group: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_param_extend_group }, cb));
+            if (!res_param_extend_group.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+
+            res_paramExtendGroupList = res_param_extend_group.data;
+        }
+
+
+        // 构件树结构
+        // --------------------------------------------------------------------
+        // 【步骤1】创建所有节点（不处理父子关系，只初始化节点）
+        // --------------------------------------------------------------------
+        const paramList: any[] = [];
+        for (const node of res_paramList) {
+            const { Param_Name, Param_Value, Param_Group, Unit_Type } = node;
+
+            // === 创建树节点 ===
+            const treeNode: any = {
+                paramName: Param_Name,
+                paramValue: Param_Value,
+                paramGroup: Param_Group,
+                paramType: Unit_Type,
+                paramsOrder: 0,
+            };
+            paramList.push(treeNode);
+        }
+
+        const extendParams: any[] = [];
+        for (const node of res_paramExtendList) {
+            const find = res_paramExtendGroupList.find((el: any) => el.Id === node.Param_Group);
+            // === 创建树节点 ===
+            const treeNode: any = {
+                elementGuidId: node.Elem_Id,
+                elementIntId: node.Elem_int_Id,
+                elementName: node.Elem_Name,
+                extendParamGroupId: node.Param_Group,
+                extendParamGroupName: find.Param_Group,
+                extendParamId: node.Id,
+                extendParamName: node.Param_Name,
+                extendParamOrder: node.Param_Order,
+                extendParamType: node.Unit_Type,
+                extendParamValue: node.Param_Value,
+                hostFileId: node.HostFile_Id,
+            };
+            extendParams.push(treeNode);
+        }
+
+        // --------------------------------------------------------------------
+        // 【步骤2】建立父子映射关系创建树结构（核心！）
+        // --------------------------------------------------------------------
+        const elementParamGroups: any[] = [];
+        paramList.forEach((node: any) => {
+            const group = node.paramGroup;
+            const find = elementParamGroups.find((item: any) => item.paramGroup === group);
+            if (find) {
+                find.paramDatas.push(node);
+            } else {
+                elementParamGroups.push({ paramGroup: group, paramDatas: [node] });
+            }
+        });
+
+        uni.$re.unipluginLog(JSON.stringify(elementParamGroups));
+        uni.$re.unipluginLog(JSON.stringify(extendParams));
+        uni.$re.unipluginLog("-----------");
+
+
+        return { data: { elementParamGroups: elementParamGroups, extendParams: extendParams }, isSuccess: true, errMsg: "", };
+    }
+);
+
+// 获取矢量属性信息
+export const element_v3_getVectorParam = createApiHandler(
+    ["dataSetId", "elemId"],
+    async function element_v3_getVectorParam(data: any) {
+        const file_store = useFileStore();
+        const fileRootPath = `${file_store.rootPath}/${file_store.fileName}`;
+        const filePath_res = `${fileRootPath}/res`;
+        const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
+
+        // 获取当前资源是场景还是单数据集
+        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.useFileUniToApp({ type: "getAllSubFileList", data: { filePath: filePath_res } }, cb));
+        if (!res_folder.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+        const fileList = res_folder.data;
+        const allFolders = fileList.filter((item: any) => item.isDirectory);
+        // 判断是否存在「文件夹名 = dataSetId」的匹配, 如果存在和数据集id相同的文件夹，代表文件是场景类型
+        const isScene = allFolders.some((folder: any) =>
+            [data.dataSetId].includes(folder.fileName)
+        );
+
+        const paramList: any[] = [];
+        if (!isScene) {
+            // 获取数据库文件路径
+            const dbPath = `${fileRootPath}/data/${data.dataSetId}.db`;
+
+            // 获取属性信息
+            const sql_param = `SELECT * FROM "${dataSetId_noline}_vector_params" WHERE Elem_Id = "${data.elemId}";`;
+            const res_param: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_param }, cb));
+            if (!res_param.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+            uni.$re.unipluginLog(JSON.stringify(res_param.data));
+            for (const item of res_param.data) {
+                const param: any = {
+                    key: item.Vector_Key,
+                    value: item.Vector_Value,
+                };
+                paramList.push(param);
+            }
+        } else {
+            // TODO 数据库中缺少了场景中矢量的属性表
+        }
+        return { data: paramList, isSuccess: true, errMsg: "", };
+    }
+);
+
+// 查询构件属性类型
+export const componentLibrary_v3_getComponentParamTypes = createApiHandler(
+    ["dataSetId", "hostFileId"],
+    async function componentLibrary_v3_getComponentParamTypes(data: any) {
+        uni.$re.unipluginLog("-----------");
+        const file_store = useFileStore();
+        const fileRootPath = `${file_store.rootPath}/${file_store.fileName}`;
+        const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
+
+        // 获取场景数据库文件
+        const res_sceneDBFile: any = await uni.$tool.toPromise((cb: any) => uni.$re.file_getChildBySuffix({ filePath: `${fileRootPath}/data`, suffix: ".db" }, cb));
+        if (!res_sceneDBFile.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+
+        const { filePath } = res_sceneDBFile.data[0];
+        const dbPath = filePath;// 获取数据库文件路径（单构件只存在场景中）
+
+        // 判断表是否存在
+        const sql_comp_param_map = `SELECT count(*) FROM sqlite_master WHERE type='table' AND name="${dataSetId_noline}_component_params_map";`;
+        const res_comp_param_map: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_comp_param_map }, cb));
+        if (!res_comp_param_map.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+        if (res_comp_param_map.data[0] && !res_comp_param_map.data[0]["count(*)"]) return { data: [], isSuccess: true, errMsg: "", };
+
+        //获取属性类型信息
+        const sql_param_type = `SELECT * FROM "${dataSetId_noline}_component_params_map" WHERE HostFile_Id = ${data.hostFileId * -1};`;
+        const res_param_type: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_param_type }, cb));
+        if (!res_param_type.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+
+        const paramTypeList: any[] = [];
+        for (const item of res_param_type.data) {
+            const param: any = {
+                paramsId: item.Params_Id,
+                paramsType: item.Params_Type,
+            };
+            paramTypeList.push(param);
+        }
+
+        uni.$re.unipluginLog(JSON.stringify(paramTypeList));
+        uni.$re.unipluginLog("-----------");
+        return { data: paramTypeList, isSuccess: true, errMsg: "", };
+    }
+);
+
+// 查询构件属性
+export const componentLibrary_v3_getComponentProperty = createApiHandler(
+    ["dataSetId", "dataSetType", "hostFileId", "id", "paramType"],
+    async function componentLibrary_v3_getComponentProperty(data: any) {
+        const file_store = useFileStore();
+        const fileRootPath = `${file_store.rootPath}/${file_store.fileName}`;
+        const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
+
+        // 获取场景数据库文件
+        const res_sceneDBFile: any = await uni.$tool.toPromise((cb: any) => uni.$re.file_getChildBySuffix({ filePath: `${fileRootPath}/data`, suffix: ".db" }, cb));
+        if (!res_sceneDBFile.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+
+        const { filePath } = res_sceneDBFile.data[0];
+        const dbPath = filePath;// 获取数据库文件路径（单构件只存在场景中）
+
+        // 构建默认的属性
+        if (data.paramType === "default") {
+            //获取节点信息
+            const sql_sceneTreeNode = `SELECT * FROM Ac_Scene_TreeNode WHERE Id = "${data.dataSetId}"`;
+            const res_sceneTreeNode: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_sceneTreeNode }, cb));
+            if (!res_sceneTreeNode.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+
+            //获取单构件信息
+            const sql_compInfo = `SELECT * FROM AC_Scene_Component_Instance WHERE TreeNodeId = "${data.id}"`;
+            const res_compInfo: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_compInfo }, cb));
+            if (!res_compInfo.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+
+            const paramList: any[] = [];
+            paramList.push({ paramName: "数据名称", paramValue: res_sceneTreeNode.data[0].DisplayName, paramType: "" });
+            paramList.push({ paramName: "源文件", paramValue: res_compInfo.data[0].Name, paramType: "" });
+            paramList.push({ paramName: "大小", paramValue: (Number(res_compInfo.data[0].FileSize) / 1024 / 1024).toFixed(2), paramType: "MB" });
+            paramList.push({ paramName: "格式", paramValue: res_compInfo.data[0].FileExtension, paramType: "" });
+
+            return { data: [{ group: "文件信息", data: paramList }], isSuccess: true, errMsg: "", };
+        }
+
+        //获取属性信息
+        const sql_param = `
+            SELECT *
+            FROM "${dataSetId_noline}_component_params"
+            WHERE Params_Id IN (
+                SELECT Params_Id 
+                FROM "${dataSetId_noline}_component_params_map"  
+                WHERE Params_Type = "${data.paramType}"
+            );
+        `
+        const res_param: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_param }, cb));
+        if (!res_param.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+
+        // 构件树结构
+        // --------------------------------------------------------------------
+        // 【步骤1】创建所有节点（不处理父子关系，只初始化节点）
+        // --------------------------------------------------------------------
+        const paramList: any[] = [];
+        for (const item of res_param.data) {
+            const param: any = {
+                paramName: item.Param_Name,
+                paramValue: item.Param_Value,
+                paramType: item.Unit_Type,
+                paramId: item.Param_Id,
+                paramGuid: item.Param_Guid,
+                paramDisplayUnit: item.Param_Display_Unit,
+                paramStorageType: item.Param_Storage_Type,
+                paramBuildIn: item.Param_Build_In,
+                paramGroup: item.Param_Group,
+            }
+            paramList.push(param);
+        }
+
+        // --------------------------------------------------------------------
+        // 【步骤2】建立父子映射关系创建树结构（核心！）
+        // --------------------------------------------------------------------
+        const paramsGroups: any[] = [];
+        paramList.forEach((node: any) => {
+            const group = node.paramGroup;
+            const find = paramsGroups.find((item: any) => item.group === group);
+            if (find) {
+                find.data.push(node);
+            } else {
+                paramsGroups.push({ group: group, data: [node] });
+            }
+        });
+
+        return { data: paramsGroups, isSuccess: true, errMsg: "", };
+    }
+);
+
+
 
 
 
@@ -1267,6 +1560,10 @@ const urlToHandler: Record<string, (data: any) => Promise<any>> = {
     "/engine/v3/room/element/parameter/list": engine_v3_room_element_parameter_list,
     "/dataSet/v3/viewDataSetModel": dataSet_v3_viewDataSetModel,
     "/cadTree/v3/file/list": cadTree_v3_file_list,
+    "/element/v3/getElementParam": element_v3_getElementParam,
+    "/element/v3/getVectorParam": element_v3_getVectorParam,
+    "/componentLibrary/v3/getComponentParamTypes": componentLibrary_v3_getComponentParamTypes,
+    "/componentLibrary/v3/getComponentProperty": componentLibrary_v3_getComponentProperty,
 };
 
 

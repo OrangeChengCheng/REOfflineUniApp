@@ -31,6 +31,10 @@ export default {
             getRoomList: serviceApi.getRoomList,
             getRoomElement: serviceApi.getRoomElement,
             getRoomInfo: serviceApi.getRoomInfo,
+            getProjectParam: serviceApi.getProjectParam,
+            getVectorParam: serviceApi.getVectorParam,
+            getElemParamTypeService: serviceApi.getElemParamTypeService,
+            getElemParamService: serviceApi.getElemParamService,
         };
         uni.$re = {
             unipluginLog: reApi.unipluginLog,

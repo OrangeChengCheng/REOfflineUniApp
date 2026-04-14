@@ -1,7 +1,7 @@
 <!--
  * @Author: Lemon C
  * @Date: 2026-01-22 10:16:05
- * @LastEditTime: 2026-04-13 10:44:23
+ * @LastEditTime: 2026-04-13 18:26:37
 -->
 <template>
     <view class="content">
@@ -46,6 +46,17 @@
             <view class="btn-line">
                 <el-button type="primary" @click.stop="getRoomList(offlineFileList[5])">获取房间列表</el-button>
                 <el-button type="primary" @click.stop="getRoomInfo(offlineFileList[5])">获取房间信息</el-button>
+            </view>
+            <view class="btn-line">
+                <el-button type="primary" @click.stop="getAttr_model(offlineFileList[5])">获取模型构件属性</el-button>
+            </view>
+            <view class="btn-line">
+                <el-button type="primary" @click.stop="getAttr_entity_default(offlineFileList[2])">获取默认单构件属性</el-button>
+                <el-button type="primary" @click.stop="getAttr_entity(offlineFileList[2])">获取单构件属性</el-button>
+            </view>
+            <view class="btn-line">
+                <el-button type="primary" @click.stop="getAttr_shp(offlineFileList[7])">获取矢量属性</el-button>
+                <el-button type="primary" @click.stop="getAttr_shp_scene(offlineFileList[2])">获取场景矢量属性</el-button>
             </view>
         </view>
         <view class="progress-area">
@@ -131,6 +142,13 @@ const offlineFileList = ref<any[]>([
         filePath: 'storage/emulated/0/Android/data/com.realengine.androidofflineapp/files/REOfflineDoc/[model]实施版_建筑.ifc',
         id: '3a1dac58-810a-6b00-995a-472456285d3d',
         dataSetTypeStr: 'bim',
+    },
+    {
+        fileName: '[vector]省界_region.shp.zip',
+        type: 1,
+        filePath: 'storage/emulated/0/Android/data/com.realengine.androidofflineapp/files/REOfflineDoc/[vector]省界_region.shp.zip',
+        id: '3a1d16de-f277-f6a3-c1b3-cdec88c8e7fc',
+        dataSetTypeStr: 'Vector',
     },
 ]);
 const percentage = ref(0);
@@ -812,6 +830,98 @@ const getRoomInfo = async (item: any) => {
     uni.showModal({
         title: 'attributeData',
         content: JSON.stringify(attributeData),
+    });
+};
+
+const getAttr_model = async (item: any) => {
+    file_store.fileName = item.fileName;
+
+    let params = {
+        dataSetId: item.id,
+        elementIntId: 25,
+        isQueryExtend: true,
+    };
+    const res = await uni.$service.getProjectParam(params);
+
+    uni.showModal({
+        title: 'getAttr_model',
+        content: JSON.stringify(res),
+    });
+};
+const getAttr_shp = async (item: any) => {
+    file_store.fileName = item.fileName;
+
+    let params = { dataSetId: '3a1d16de-f277-f6a3-c1b3-cdec88c8e7fc', elemId: 'GlobalPageShp_3a1d16def277f6a3c1b3cdec88c8e7fc_260331170939_2' };
+    const res = await uni.$service.getVectorParam(params);
+
+    uni.showModal({
+        title: 'getAttr_shp',
+        content: JSON.stringify(res),
+    });
+};
+const getAttr_shp_scene = async (item: any) => {
+    file_store.fileName = item.fileName;
+
+    let params = { dataSetId: '3a2036c2-0b9a-d7c2-789a-b96b53d62e4d', elemId: 'GlobalPageShp_3a2036c20b9ad7c2789ab96b53d62e4d_260325184540_2' };
+    const res = await uni.$service.getVectorParam(params);
+
+    uni.showModal({
+        title: 'getAttr_shp',
+        content: JSON.stringify(res),
+    });
+};
+const getAttr_entity_default = async (item: any) => {
+    file_store.fileName = item.fileName;
+
+    // 获取属性类型
+    let params_type = { dataSetId: '3a2097d5-549b-c06c-606b-8d94af753612', hostFileId: 1 };
+    const res_type = await uni.$service.getElemParamTypeService(params_type);
+
+    let paramType;
+    if (res_type.length) {
+        paramType = res_type[0].paramsType;
+    } else {
+        paramType = 'default';
+    }
+    let params_info = {
+        dataSetId: '3a2097d5-549b-c06c-606b-8d94af753612',
+        dataSetType: 19,
+        hostFileId: 1,
+        id: '3a202af8-a037-5f8e-4eba-78d9c91ae47e',
+        paramType: paramType,
+    };
+    const res = await uni.$service.getElemParamService(params_info);
+
+    uni.showModal({
+        title: 'getAttr_entity',
+        content: JSON.stringify(res),
+    });
+};
+const getAttr_entity = async (item: any) => {
+    file_store.fileName = item.fileName;
+
+    // 获取属性类型
+    let params_type = { dataSetId: '3a2097d5-549b-c06c-606b-8d94af753612', hostFileId: 2 };
+    const res_type = await uni.$service.getElemParamTypeService(params_type);
+
+    let paramType;
+    if (res_type.length) {
+        paramType = res_type[0].paramsType;
+    } else {
+        paramType = 'default';
+    }
+    let params_info = {
+        dataSetId: '3a2097d5-549b-c06c-606b-8d94af753612',
+        dataSetType: 19,
+        hostFileId: 2,
+        id: '3a2097d4-e167-5aab-805f-4bada2319dfa',
+        paramType: paramType,
+    };
+    const res = await uni.$service.getElemParamService(params_info);
+
+    uni.showModal({
+        title: 'getAttr_entity',
+        content: JSON.stringify(res),
     });
 };
 </script>

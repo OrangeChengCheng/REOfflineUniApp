@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-13 18:01:53
- * @LastEditTime: 2026-04-10 16:54:16
+ * @LastEditTime: 2026-04-13 10:51:15
  */
 
 
@@ -45,6 +45,10 @@ declare global {
             getRoomList(params: any): Promise<any>;
             getRoomElement(params: any): Promise<any>;
             getRoomInfo(params: any): Promise<any>;
+            getProjectParam(params: any): Promise<any>;
+            getVectorParam(params: any): Promise<any>;
+            getElemParamTypeService(params: any): Promise<any>;
+            getElemParamService(params: any): Promise<any>;
         };
         $tool: {
             toPromise<T = any>(fn: (callback: (res: any) => void) => void): Promise<T>;

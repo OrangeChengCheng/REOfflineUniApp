@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2025-11-19 14:50:45
- * @LastEditTime: 2026-04-10 16:54:38
+ * @LastEditTime: 2026-04-13 10:49:43
  */
 import {
     isRoomExistService,
@@ -17,6 +17,10 @@ import {
     getRoomList,
     getRoomElement,
     getRoomInfo,
+    getProjectParam,
+    getVectorParam,
+    getElemParamTypeService,
+    getElemParamService,
 } from '@/service/interface';
 
 import dataTool from '@/utils/dataTool';
@@ -38,6 +42,10 @@ interface ApiMethods {
     getRoomList(params: any): Promise<any>;
     getRoomElement(params: any): Promise<any>;
     getRoomInfo(params: any): Promise<any>;
+    getProjectParam(params: any): Promise<any>;
+    getVectorParam(params: any): Promise<any>;
+    getElemParamTypeService(params: any): Promise<any>;
+    getElemParamService(params: any): Promise<any>;
 }
 
 const api: ApiMethods = {
@@ -155,8 +163,6 @@ const api: ApiMethods = {
             throw error;
         }
     },
-
-
 
     // MARK Service 获取开挖纹理列表
     // getExtrudeTexList: async (sceneTree: any): Promise<any> => {
@@ -290,7 +296,7 @@ const api: ApiMethods = {
     },
 
     // MARK 获取房间构件
-    getRoomElement:async (paran: any): Promise<any> => {
+    getRoomElement: async (paran: any): Promise<any> => {
         try {
             const res = await getRoomElement(paran);
             if (res.isSuccess) {
@@ -305,7 +311,7 @@ const api: ApiMethods = {
     },
 
     // MARK 获取房间信息
-    getRoomInfo:async (paran: any): Promise<any> => {
+    getRoomInfo: async (paran: any): Promise<any> => {
         try {
             const res = await getRoomInfo(paran);
             if (res.isSuccess) {
@@ -318,6 +324,69 @@ const api: ApiMethods = {
             throw error;
         }
     },
+
+    // MARK 查询模型属性
+    getProjectParam: async (paran: any): Promise<any> => {
+        try {
+            const res = await getProjectParam(paran);
+            if (res.isSuccess) {
+                return res.data;
+            } else {
+                uni.$re.unipluginLog(res.errMsg || '模型属性获取失败');
+                throw new Error(res.errMsg || '模型属性获取失败');
+            }
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // MARK 获取矢量属性信息
+    getVectorParam: async (paran: any): Promise<any> => {
+        try {
+            const res = await getVectorParam(paran);
+            if (res.isSuccess) {
+                return res.data;
+            } else {
+                uni.$re.unipluginLog(res.errMsg || '矢量属性信息获取失败');
+                throw new Error(res.errMsg || '矢量属性信息获取失败');
+            }
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // MARK 查询构件属性类型
+    getElemParamTypeService: async (paran: any): Promise<any> => {
+        try {
+            const res = await getElemParamTypeService(paran);
+            if (res.isSuccess) {
+                return res.data;
+            } else {
+                uni.$re.unipluginLog(res.errMsg || '构件属性类型获取失败');
+                throw new Error(res.errMsg || '构件属性类型获取失败');
+            }
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // MARK 查询构件属性
+    getElemParamService: async (paran: any): Promise<any> => {
+        try {
+            const res = await getElemParamService(paran);
+            if (res.isSuccess) {
+                return res.data;
+            } else {
+                uni.$re.unipluginLog(res.errMsg || '构件属性获取失败');
+                throw new Error(res.errMsg || '构件属性获取失败');
+            }
+        } catch (error) {
+            throw error;
+        }
+    },
+
+
+
 
 
 

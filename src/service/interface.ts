@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-04-19 12:22:25
- * @LastEditTime: 2026-04-10 14:24:33
+ * @LastEditTime: 2026-04-13 10:46:41
  */
 import { requestPost, requestGet } from '@/service/offlineService';
 
@@ -87,4 +87,26 @@ export function getProjectModel(data: any) {
 // 获取数据集下的文件列表
 export function getCadDatasetFiles(data: any) {
     return requestPost('/cadTree/v3/file/list', data);
+}
+
+
+// MOD-- 属性 相关
+// 查询模型属性
+export function getProjectParam(data: any) {
+    return requestPost('/element/v3/getElementParam', data);
+}
+
+// 获取矢量属性信息
+export function getVectorParam(data: any) {
+    return requestPost('/element/v3/getVectorParam', data);
+}
+
+// 查询构件属性类型
+export function getElemParamTypeService(data: any) {
+    return requestPost('/componentLibrary/v3/getComponentParamTypes', data);
+}
+
+// 查询构件属性
+export function getElemParamService(data: any) {
+    return requestPost('/componentLibrary/v3/getComponentProperty', data);
 }
