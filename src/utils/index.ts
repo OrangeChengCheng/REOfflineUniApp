@@ -49,7 +49,11 @@ export default {
             getLocFileList: reApi.getLocFileList,
             delFile: reApi.delFile,
             selFile: reApi.selFile,
+
+            
             showOfflineEngine: reApi.showOfflineEngine,
+            fileGetAllChild: reApi.fileGetAllChild,
+            fileGetChildBySuffix: reApi.fileGetChildBySuffix,
             dbQuery: reApi.dbQuery,
             dbTableExist: reApi.dbTableExist,
         };

@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-14 14:22:08
- * @LastEditTime: 2026-04-07 17:03:30
+ * @LastEditTime: 2026-04-14 10:57:12
  */
 
 
@@ -19,7 +19,14 @@ interface ApiMethods {
     file_getChildBySuffix(data: any, onCallBack: (data: any) => void): void;
     delFile(data: any, onCallBack: (data: any) => void): void;
     selFile(data: any, onCallBack: (data: any) => void): void;
+
+
+
     showOfflineEngine(data: any, onCallBack: (data: any) => void): void;
+
+    fileGetAllChild(data: any, onCallBack: (data: any) => void): void;
+    fileGetChildBySuffix(data: any, onCallBack: (data: any) => void): void;
+
     dbQuery(data: any, onCallBack: (data: any) => void): void;
     dbTableExist(data: any, onCallBack: (data: any) => void): void;
 }
@@ -132,27 +139,55 @@ const api: ApiMethods = {
         });
     },
 
+
+
+    // MOD-- 引擎模块 <---
+    // 模型渲染
     showOfflineEngine: (data: any, onCallBack: (data: any) => void) => {
         const module = api.getREModule();
         if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
         module.showOfflineEngine(data, (res: any) => {
-            // 不能使用promise的resolve进行返回，要使用传递回调进行处理，不然resolve执行后函数就结束，无法再次执行resolve，需要保持函数一直在，使用参数的回调
             onCallBack(res);
         });
     },
 
+    // MOD-- 压缩包模块 <---
+
+
+    // MOD-- 文件模块 <---
+    // 获取指定文件夹下所有文件列表
+    fileGetAllChild: (data: any, onCallBack: (data: any) => void) => {
+        const module = api.getREModule();
+        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
+        module.fileGetAllChild(data, (res: any) => {
+            onCallBack(res);
+        });
+    },
+
+    // 获取文件夹内指定后缀的文件列表
+    fileGetChildBySuffix: (data: any, onCallBack: (data: any) => void) => {
+        const module = api.getREModule();
+        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
+        module.fileGetChildBySuffix(data, (res: any) => {
+            onCallBack(res);
+        });
+    },
+
+    // MOD-- 数据库模块 <---
+    // 数据库查询
     dbQuery: (data: any, onCallBack: (data: any) => void) => {
         const module = api.getREModule();
         if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
         module.dbQuery(data, (res: any) => {
-            // 不能使用promise的resolve进行返回，要使用传递回调进行处理，不然resolve执行后函数就结束，无法再次执行resolve，需要保持函数一直在，使用参数的回调
             onCallBack(res);
         });
     },
 
+    // 查表是否存在
     dbTableExist: (data: any, onCallBack: (data: any) => void) => {
-        api.getREModule()?.dbTableExist(data, (res: any) => {
-            // 不能使用promise的resolve进行返回，要使用传递回调进行处理，不然resolve执行后函数就结束，无法再次执行resolve，需要保持函数一直在，使用参数的回调
+        const module = api.getREModule();
+        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
+        module.dbTableExist(data, (res: any) => {
             onCallBack(res);
         });
     },

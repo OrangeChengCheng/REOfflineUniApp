@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2026-03-20 11:31:20
- * @LastEditTime: 2026-04-14 10:23:01
+ * @LastEditTime: 2026-04-15 16:10:10
  */
 
 import { useFileStore } from '@/stores/file';
@@ -62,7 +62,7 @@ export const scene_v3 = createApiHandler(
     [],
     async function scene_v3(data: any) {
         const file_store = useFileStore();
-        const dbPath = `${file_store.rootPath}/${file_store.fileName}/data/${data}.db`;
+        const dbPath = `${file_store.filePath}/data/${data}.db`;
 
         //读取场景基本信息
         const sql_scene = `SELECT DisplayName, DisplayMode, Coordinates, CoordinatesType, Proj4Coordinates, ExtraProperties FROM Ac_Scene LIMIT 1`;
@@ -93,8 +93,8 @@ export const scene_v3 = createApiHandler(
             });
         });
 
-        //读取场景基本信息
-        const sql_componentTreeId = `SELECT Id FROM AC_Scene_TreeNode WHERE NodeType = 3 AND ParentId = '00000000-0000-0000-0000-000000000000' AND MetadataNodeType = 19;`;
+        // 获取单构件节点信息
+        const sql_componentTreeId = `SELECT * FROM AC_Scene_TreeNode WHERE NodeType = 3 AND ParentId = '00000000-0000-0000-0000-000000000000' AND MetadataNodeType = 19;`;
         const res_componentTreeId: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath, sql: sql_componentTreeId }, cb));
         if (!res_componentTreeId.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
 
@@ -103,7 +103,7 @@ export const scene_v3 = createApiHandler(
             sceneName: res_scene.data[0].DisplayName,
             coordinatesType: res_scene.data[0].CoordinatesType,
             coordinates: res_scene.data[0].Coordinates,
-            componentTreeId: res_componentTreeId.data[0].Id,
+            componentTreeId: res_componentTreeId.data.length ? res_componentTreeId.data[0].Id : "",
             displayMode: res_scene.data[0].DisplayMode,
             dataSetPosition: dataSetPosition,
             componentPosition: componentPosition,
@@ -121,7 +121,7 @@ export const sceneTree_v3_getTreeById = createApiHandler(
     ["sceneId"],
     async function sceneTree_v3_getTreeById(data: any) {
         const file_store = useFileStore();
-        const dbPath_scene = `${file_store.rootPath}/${file_store.fileName}/data/${data.sceneId}.db`;
+        const dbPath_scene = `${file_store.filePath}/data/${data.sceneId}.db`;
 
         //从数据库读取节点信息
         const sql_sceneTreeNode = `SELECT * FROM Ac_Scene_TreeNode`;
@@ -168,7 +168,7 @@ export const sceneTree_v3_getTreeById = createApiHandler(
                 const dataSetId_noline = treeNode.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
                 // BIM模型
                 if (treeNode.dataSetType == 0) {
-                    const dbPath_bim = `${file_store.rootPath}/${file_store.fileName}/data/${treeNode.dataSetId}/${treeNode.dataSetId}.db`;
+                    const dbPath_bim = `${file_store.filePath}/data/${treeNode.dataSetId}/${treeNode.dataSetId}.db`;
 
                     //从数据库读取模型文件信息
                     const tableName = `${dataSetId_noline}_filename`;
@@ -191,7 +191,7 @@ export const sceneTree_v3_getTreeById = createApiHandler(
                 }
                 // 倾斜摄影
                 else if (treeNode.dataSetType == 11) {
-                    const dbPat_osgb = `${file_store.rootPath}/${file_store.fileName}/data/${treeNode.dataSetId}/${treeNode.dataSetId}.db`;
+                    const dbPat_osgb = `${file_store.filePath}/data/${treeNode.dataSetId}/${treeNode.dataSetId}.db`;
 
                     //从数据库读取坐标系信息
                     const sql_osgbTreeNode = `SELECT * FROM AC_Osgb_TreeNode;`;
@@ -203,7 +203,7 @@ export const sceneTree_v3_getTreeById = createApiHandler(
                 }
                 // 点云
                 else if (treeNode.dataSetType == 15) {
-                    const dbPat_pointCloud = `${file_store.rootPath}/${file_store.fileName}/data/${treeNode.dataSetId}/${treeNode.dataSetId}.db`;
+                    const dbPat_pointCloud = `${file_store.filePath}/data/${treeNode.dataSetId}/${treeNode.dataSetId}.db`;
 
                     // 获取类型
                     const sql_pcTreeNode = `SELECT * FROM AC_PointCloud_TreeNode;`;
@@ -421,7 +421,7 @@ export const dataSet_v3_dataSetRootNodes = createApiHandler(
     ["dataSetId"],
     async function dataSet_v3_dataSetRootNodes(data: any) {
         const file_store = useFileStore();
-        const dbPath_bim = `${file_store.rootPath}/${file_store.fileName}/data/${data.dataSetId}.db`;
+        const dbPath_bim = `${file_store.filePath}/data/${data.dataSetId}.db`;
         const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
 
         // 获取项目信息
@@ -495,12 +495,12 @@ export const dataSet_v3_dataSetFileTreeNodes = createApiHandler(
     ["dataSetId", "fileIntId", "uniqueId"],
     async function dataSet_v3_dataSetFileTreeNodes(data: any) {
         const file_store = useFileStore();
-        const fileRootPath = `${file_store.rootPath}/${file_store.fileName}`;
+        const fileRootPath = `${file_store.filePath}`;
         const filePath_res = `${fileRootPath}/res`;
         const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
 
         // 获取当前资源是场景还是单数据集
-        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.useFileUniToApp({ type: "getAllSubFileList", data: { filePath: filePath_res } }, cb));
+        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetAllChild({ filePath: filePath_res }, cb));
         if (!res_folder.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
         const fileList = res_folder.data;
         const allFolders = fileList.filter((item: any) => item.isDirectory);
@@ -511,16 +511,13 @@ export const dataSet_v3_dataSetFileTreeNodes = createApiHandler(
 
         // 获取数据库文件路径
         const dbPath = !isScene ? `${fileRootPath}/data/${data.dataSetId}.db` : `${fileRootPath}/data/${data.dataSetId}/${data.dataSetId}.db`;
-        const tableName = `${dataSetId_noline}_treenode`;
 
         // 判断目录树子节点表是否存在
-        const sql_treenodeExist = `SELECT count(*) FROM sqlite_master WHERE type='table' AND name="${tableName}";`;
-        const res_treenodeExist: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_treenodeExist }, cb));
-        if (!res_treenodeExist.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
-        if (res_treenodeExist.data[0] && !res_treenodeExist.data[0]["count(*)"]) return { data: [], isSuccess: true, errMsg: "", };
+        const res_tableExist_treenode: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbTableExist({ dbPath: dbPath, tableName: `${dataSetId_noline}_treenode` }, cb));
+        if (!res_tableExist_treenode.data) return { data: [], isSuccess: true, errMsg: "", };
 
         // 获取子节点数据
-        const sql_treenode = `SELECT * FROM "${tableName}" WHERE HostFile_Id = "${data.fileIntId}";`;
+        const sql_treenode = `SELECT * FROM "${dataSetId_noline}_treenode" WHERE HostFile_Id = "${data.fileIntId}";`;
         const res_treenode: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_treenode }, cb));
         if (!res_treenode.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
 
@@ -596,12 +593,12 @@ export const dataSet_v3_dataSetFileTreeNodes_lazy = createApiHandler(
     ["dataSetId", "parentNodeIntId", "hostFileId"],
     async function dataSet_v3_dataSetFileTreeNodes_lazy(data: any) {
         const file_store = useFileStore();
-        const fileRootPath = `${file_store.rootPath}/${file_store.fileName}`;
+        const fileRootPath = `${file_store.filePath}`;
         const filePath_res = `${fileRootPath}/res`;
         const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
 
         // 获取当前资源是场景还是单数据集
-        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.useFileUniToApp({ type: "getAllSubFileList", data: { filePath: filePath_res } }, cb));
+        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetAllChild({ filePath: filePath_res }, cb));
         if (!res_folder.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
         const fileList = res_folder.data;
         const allFolders = fileList.filter((item: any) => item.isDirectory);
@@ -612,16 +609,13 @@ export const dataSet_v3_dataSetFileTreeNodes_lazy = createApiHandler(
 
         // 获取数据库文件路径
         const dbPath = !isScene ? `${fileRootPath}/data/${data.dataSetId}.db` : `${fileRootPath}/data/${data.dataSetId}/${data.dataSetId}.db`;
-        const tableName = `${dataSetId_noline}_treenode`;
 
         // 判断目录树子节点表是否存在
-        const sql_treenodeExist = `SELECT count(*) FROM sqlite_master WHERE type='table' AND name="${tableName}";`;
-        const res_treenodeExist: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_treenodeExist }, cb));
-        if (!res_treenodeExist.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
-        if (res_treenodeExist.data[0] && !res_treenodeExist.data[0]["count(*)"]) return { data: [], isSuccess: true, errMsg: "", };
+        const res_tableExist_treenode: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbTableExist({ dbPath: dbPath, tableName: `${dataSetId_noline}_treenode` }, cb));
+        if (!res_tableExist_treenode.data) return { data: [], isSuccess: true, errMsg: "", };
 
         // 获取子节点数据
-        const sql_treenode = `SELECT * FROM "${tableName}" WHERE HostFile_Id = ${data.hostFileId} AND Parent_Node_Int_Id = ${data.parentNodeIntId} ORDER BY TreeNode_int_Id ASC;`;
+        const sql_treenode = `SELECT * FROM "${dataSetId_noline}_treenode" WHERE HostFile_Id = ${data.hostFileId} AND Parent_Node_Int_Id = ${data.parentNodeIntId} ORDER BY TreeNode_int_Id ASC;`;
         const res_treenode: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_treenode }, cb));
         if (!res_treenode.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
 
@@ -649,14 +643,14 @@ export const element_v3_getTreeChildren = createApiHandler(
     ["dataSets"],
     async function element_v3_getTreeChildren(data: any) {
         const file_store = useFileStore();
-        const fileRootPath = `${file_store.rootPath}/${file_store.fileName}`;
+        const fileRootPath = `${file_store.filePath}`;
         const filePath_res = `${fileRootPath}/res`;
         // 获取数据集id
         const dataSetId = data.dataSets[0].dataSetId;
         const dataSetId_noline = dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
 
         // 获取当前资源是场景还是单数据集
-        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.useFileUniToApp({ type: "getAllSubFileList", data: { filePath: filePath_res } }, cb));
+        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetAllChild({ filePath: filePath_res }, cb));
         if (!res_folder.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
         const fileList = res_folder.data;
         const allFolders = fileList.filter((item: any) => item.isDirectory);
@@ -667,17 +661,14 @@ export const element_v3_getTreeChildren = createApiHandler(
 
         // 获取数据库文件路径
         const dbPath = !isScene ? `${fileRootPath}/data/${dataSetId}.db` : `${fileRootPath}/data/${dataSetId}/${dataSetId}.db`;
-        const tableName = `${dataSetId_noline}_treenode`;
 
         // 判断目录树子节点表是否存在
-        const sql_treenodeExist = `SELECT count(*) FROM sqlite_master WHERE type='table' AND name="${tableName}";`;
-        const res_treenodeExist: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_treenodeExist }, cb));
-        if (!res_treenodeExist.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
-        if (res_treenodeExist.data[0] && !res_treenodeExist.data[0]["count(*)"]) return { data: [], isSuccess: true, errMsg: "", };
+        const res_tableExist_treenode: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbTableExist({ dbPath: dbPath, tableName: `${dataSetId_noline}_treenode` }, cb));
+        if (!res_tableExist_treenode.data) return { data: [], isSuccess: true, errMsg: "", };
 
         // 获取子节点数据
         const childNodeIdListStr = data.dataSets.map((item: any) => item.childNodeId).join(",");// 获取所有需要查询的父节点id集合拼接的字符串
-        const sql_treenode = `SELECT * FROM "${tableName}" WHERE TreeNode_int_Id IN (${childNodeIdListStr}) AND Child_Elem_Int_Id_Str !="";`;
+        const sql_treenode = `SELECT * FROM "${dataSetId_noline}_treenode" WHERE TreeNode_int_Id IN (${childNodeIdListStr}) AND Child_Elem_Int_Id_Str !="";`;
         const res_treenode: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_treenode }, cb));
         if (!res_treenode.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
 
@@ -695,12 +686,12 @@ export const element_v3_getTreeChildren_lazy = createApiHandler(
     ["dataSetId", "hostFileId", "levelCode"],
     async function element_v3_getTreeChildren_lazy(data: any) {
         const file_store = useFileStore();
-        const fileRootPath = `${file_store.rootPath}/${file_store.fileName}`;
+        const fileRootPath = `${file_store.filePath}`;
         const filePath_res = `${fileRootPath}/res`;
         const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
 
         // 获取当前资源是场景还是单数据集
-        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.useFileUniToApp({ type: "getAllSubFileList", data: { filePath: filePath_res } }, cb));
+        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetAllChild({ filePath: filePath_res }, cb));
         if (!res_folder.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
         const fileList = res_folder.data;
         const allFolders = fileList.filter((item: any) => item.isDirectory);
@@ -711,21 +702,18 @@ export const element_v3_getTreeChildren_lazy = createApiHandler(
 
         // 获取数据库文件路径
         const dbPath = !isScene ? `${fileRootPath}/data/${data.dataSetId}.db` : `${fileRootPath}/data/${data.dataSetId}/${data.dataSetId}.db`;
-        const tableName = `${dataSetId_noline}_treenode`;
 
         // 判断目录树子节点表是否存在
-        const sql_treenodeExist = `SELECT count(*) FROM sqlite_master WHERE type='table' AND name="${tableName}";`;
-        const res_treenodeExist: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_treenodeExist }, cb));
-        if (!res_treenodeExist.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
-        if (res_treenodeExist.data[0] && !res_treenodeExist.data[0]["count(*)"]) return { data: [], isSuccess: true, errMsg: "", };
+        const res_tableExist_treenode: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbTableExist({ dbPath: dbPath, tableName: `${dataSetId_noline}_treenode` }, cb));
+        if (!res_tableExist_treenode.data) return { data: [], isSuccess: true, errMsg: "", };
 
         // 获取子节点数据
         const sql_treenode = `
             SELECT *
-            FROM "${tableName}"
+            FROM "${dataSetId_noline}_treenode"
             WHERE Parent_Node_Int_Id = (
                 SELECT TreeNode_int_Id 
-                FROM "${tableName}"  
+                FROM "${dataSetId_noline}_treenode"  
                 WHERE LevelCode = "${data.levelCode}"
             );
         `
@@ -746,19 +734,13 @@ export const engine_v3_room_exists = createApiHandler(
     async function engine_v3_room_exists(data) {
         const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
         const file_store = useFileStore();
-        const dbPath = `${file_store.rootPath}/${file_store.fileName}/data/${data.dataSetId}.db`;
-        const tableName = `${dataSetId_noline}_room_Info`;
-        const sql = `SELECT count(*) FROM sqlite_master WHERE type='table' AND name="${tableName}";`;
+        const dbPath = `${file_store.filePath}/data/${data.dataSetId}.db`;
 
-        const res: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath, sql }, cb));
-        if (!res.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
+        // 判断房间表是否存在
+        const res_tableExist_roomInfo: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbTableExist({ dbPath: dbPath, tableName: `${dataSetId_noline}_room_Info` }, cb));
+        if (!res_tableExist_roomInfo.data) return { data: [], isSuccess: true, errMsg: "", };
 
-        let exist = false;
-        if (res.data && res.data[0] && res.data[0]["count(*)"] == 1) {
-            exist = true;
-        }
-
-        return { data: { exist }, isSuccess: res.success, errMsg: "", };
+        return { data: { exist: res_tableExist_roomInfo.data }, isSuccess: res_tableExist_roomInfo.success, errMsg: "", };
     }
 );
 
@@ -767,7 +749,7 @@ export const engine_v3_room_list = createApiHandler(
     ["dataSetId", "fileNames"],
     async function engine_v3_room_list(data: any) {
         const file_store = useFileStore();
-        const dbPath = `${file_store.rootPath}/${file_store.fileName}/data/${data.dataSetId}.db`;
+        const dbPath = `${file_store.filePath}/data/${data.dataSetId}.db`;
         const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
 
         //获取房间信息
@@ -834,7 +816,7 @@ export const element_v3_getRoomTreeChildren = createApiHandler(
     ["dataSetId", "childNodeId"],
     async function element_v3_getRoomTreeChildren(data: any) {
         const file_store = useFileStore();
-        const dbPath = `${file_store.rootPath}/${file_store.fileName}/data/${data.dataSetId}.db`;
+        const dbPath = `${file_store.filePath}/data/${data.dataSetId}.db`;
         const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
 
         //获取房间构件信息
@@ -855,7 +837,7 @@ export const engine_v3_room_element_parameter_list = createApiHandler(
     ["dataSetId", "elementIntId"],
     async function engine_v3_room_element_parameter_list(data: any) {
         const file_store = useFileStore();
-        const dbPath = `${file_store.rootPath}/${file_store.fileName}/data/${data.dataSetId}.db`;
+        const dbPath = `${file_store.filePath}/data/${data.dataSetId}.db`;
         const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
 
         //获取房间构件信息
@@ -916,10 +898,11 @@ export const dataSet_v3_viewDataSetModel = createApiHandler(
     ["dataSetIds"],
     async function dataSet_v3_viewDataSetModel(data) {
         const file_store = useFileStore();
-        const fileRootPath = `${file_store.rootPath}/${file_store.fileName}`;
+        const fileRootPath = `${file_store.filePath}`;
         const filePath_res = `${fileRootPath}/res`;
 
-        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.useFileUniToApp({ type: "getAllSubFileList", data: { filePath: filePath_res } }, cb));
+        // 获取当前资源是场景还是单数据集
+        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetAllChild({ filePath: filePath_res }, cb));
         if (!res_folder.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
 
         const fileList = res_folder.data;
@@ -961,7 +944,7 @@ export const dataSet_v3_viewDataSetModel = createApiHandler(
 
                 // 获取项目信息
                 const dbPath = `${fileRootPath}/data/${dataSetId}.db`;
-                const sql_proj = `SELECT * FROM Project`;
+                const sql_proj = `SELECT * FROM Project;`;
                 const res_proj: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_proj }, cb));
                 if (!res_proj.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
 
@@ -1014,11 +997,10 @@ export const dataSet_v3_viewDataSetModel = createApiHandler(
                     if (!CoordinatesDefault) {
                         matchResult.coordinatesConfig.coordinatesType = "None";
                     } else {
-                        const CoordinatesDefault_json = JSON.parse(CoordinatesDefault);
-                        matchResult.coordinatesConfig.coordinates = CoordinatesDefault_json.Coordinates;
-                        if (!CoordinatesDefault_json.Coordinates.length) {
+                        matchResult.coordinatesConfig.coordinates = CoordinatesDefault;
+                        if (!CoordinatesDefault.length) {
                             matchResult.coordinatesConfig.coordinatesType = "None";
-                        } else if (CoordinatesDefault_json.Coordinates.startsWith("EPSG")) {
+                        } else if (CoordinatesDefault.startsWith("EPSG")) {
                             matchResult.coordinatesConfig.coordinatesType = "EPSG";
                         } else {
                             matchResult.coordinatesConfig.coordinatesType = "WKT";
@@ -1031,7 +1013,7 @@ export const dataSet_v3_viewDataSetModel = createApiHandler(
         // 场景类型
         else {
             // 获取场景数据库文件
-            const res_sceneDBFile: any = await uni.$tool.toPromise((cb: any) => uni.$re.file_getChildBySuffix({ filePath: `${fileRootPath}/data`, suffix: ".db" }, cb));
+            const res_sceneDBFile: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetChildBySuffix({ filePath: `${fileRootPath}/data`, suffix: ".db" }, cb));
             if (!res_sceneDBFile.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
 
             const { filePath } = res_sceneDBFile.data[0];
@@ -1120,11 +1102,10 @@ export const dataSet_v3_viewDataSetModel = createApiHandler(
                     if (!CoordinatesDefault) {
                         matchResult.coordinatesConfig.coordinatesType = "None";
                     } else {
-                        const CoordinatesDefault_json = JSON.parse(CoordinatesDefault);
-                        matchResult.coordinatesConfig.coordinates = CoordinatesDefault_json.Coordinates;
-                        if (!CoordinatesDefault_json.Coordinates.length) {
+                        matchResult.coordinatesConfig.coordinates = CoordinatesDefault;
+                        if (!CoordinatesDefault.length) {
                             matchResult.coordinatesConfig.coordinatesType = "None";
-                        } else if (CoordinatesDefault_json.Coordinates.startsWith("EPSG")) {
+                        } else if (CoordinatesDefault.startsWith("EPSG")) {
                             matchResult.coordinatesConfig.coordinatesType = "EPSG";
                         } else {
                             matchResult.coordinatesConfig.coordinatesType = "WKT";
@@ -1161,15 +1142,15 @@ export const dataSet_v3_viewDataSetModel = createApiHandler(
                     const res_sceneCADShp: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath_scene, sql: sql_sceneCADShp }, cb));
                     if (!res_sceneCADShp.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
 
-                    const { CoordinatesDefault } = res_sceneCADShp.data[0];
-                    if (CoordinatesDefault) {
-                        const CoordinatesDefault_json = JSON.parse(CoordinatesDefault);
-                        matchResult.coordinatesConfig.coordinates = CoordinatesDefault_json.Coordinates;
-                        matchResult.coordinatesConfig.basePoint = CoordinatesDefault_json.BasePoint;
-                        matchResult.coordinatesConfig.northAngle = CoordinatesDefault_json.NorthAngle;
-                        matchResult.coordinatesConfig.coordinatesType = CoordinatesDefault_json.CoordinatesType;
-                        matchResult.coordinatesConfig.coordinatesPoint = CoordinatesDefault_json.CoordinatesPoint;
-                        matchResult.coordinatesConfig.basePointType = CoordinatesDefault_json.BasePointType;
+                    const { CoordinatesConfig } = res_sceneCADShp.data[0];
+                    if (CoordinatesConfig) {
+                        const CoordinatesConfig_json = JSON.parse(CoordinatesConfig);
+                        matchResult.coordinatesConfig.coordinates = CoordinatesConfig_json.Coordinates;
+                        matchResult.coordinatesConfig.basePoint = CoordinatesConfig_json.BasePoint;
+                        matchResult.coordinatesConfig.northAngle = CoordinatesConfig_json.NorthAngle;
+                        matchResult.coordinatesConfig.coordinatesType = CoordinatesConfig_json.CoordinatesType;
+                        matchResult.coordinatesConfig.coordinatesPoint = CoordinatesConfig_json.CoordinatesPoint;
+                        matchResult.coordinatesConfig.basePointType = CoordinatesConfig_json.BasePointType;
                     }
                 }
                 resultList.push(matchResult);
@@ -1186,7 +1167,7 @@ export const cadTree_v3_file_list = createApiHandler(
     ["dataSetId"],
     async function cadTree_v3_file_list(data: any) {
         const file_store = useFileStore();
-        const dbPath_cad = `${file_store.rootPath}/${file_store.fileName}/data/${data.dataSetId}.db`;
+        const dbPath_cad = `${file_store.filePath}/data/${data.dataSetId}.db`;
 
         //获取树信息
         const sql_cadTreeNode = `SELECT * FROM AC_Cad_TreeNode WHERE Id = "${data.dataSetId}";`;
@@ -1215,7 +1196,7 @@ export const cadTree_v3_file_list = createApiHandler(
                 length: cadMeta.Length,
                 rate: cadMeta.Rate,
                 status: cadMeta.Status,
-                resourcesAddress: `${file_store.rootPath}/${file_store.fileName}/res/${cadMeta.Dir}/${cadMeta.FileResourceId}`,
+                resourcesAddress: `${file_store.filePath}/res/${cadMeta.Dir}/${cadMeta.FileResourceId}`,
                 unit: Unit,
                 lastModificationTime: cadMeta.LastModificationTime,
                 creationTime: cadMeta.CreationTime,
@@ -1232,14 +1213,13 @@ export const cadTree_v3_file_list = createApiHandler(
 export const element_v3_getElementParam = createApiHandler(
     ["dataSetId", "elementIntId", "isQueryExtend"],
     async function element_v3_getElementParam(data: any) {
-        uni.$re.unipluginLog("-----------");
         const file_store = useFileStore();
-        const fileRootPath = `${file_store.rootPath}/${file_store.fileName}`;
+        const fileRootPath = `${file_store.filePath}`;
         const filePath_res = `${fileRootPath}/res`;
         const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
 
         // 获取当前资源是场景还是单数据集
-        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.useFileUniToApp({ type: "getAllSubFileList", data: { filePath: filePath_res } }, cb));
+        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetAllChild({ filePath: filePath_res }, cb));
         if (!res_folder.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
         const fileList = res_folder.data;
         const allFolders = fileList.filter((item: any) => item.isDirectory);
@@ -1276,7 +1256,7 @@ export const element_v3_getElementParam = createApiHandler(
 
             res_paramExtendList = res_param_extend.data;
             const paramGroupIdList_t = res_paramExtendList.map((el: any) => el.Param_Group);
-            const paramGroupIdList = [...new Set(paramGroupIdList_t)]; // 去重
+            const paramGroupIdList = Array.from(new Set(paramGroupIdList_t)); // 去重
 
             const sql_param_extend_group = `SELECT * FROM "${dataSetId_noline}_parameter_extend_group" WHERE Id IN (${paramGroupIdList});`;
             const res_param_extend_group: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_param_extend_group }, cb));
@@ -1307,7 +1287,7 @@ export const element_v3_getElementParam = createApiHandler(
 
         const extendParams: any[] = [];
         for (const node of res_paramExtendList) {
-            const find = res_paramExtendGroupList.find((el: any) => el.Id === node.Param_Group);
+            const find = res_paramExtendGroupList.find((el: any) => (el.Id).toString() === node.Param_Group);
             // === 创建树节点 ===
             const treeNode: any = {
                 elementGuidId: node.Elem_Id,
@@ -1339,11 +1319,6 @@ export const element_v3_getElementParam = createApiHandler(
             }
         });
 
-        uni.$re.unipluginLog(JSON.stringify(elementParamGroups));
-        uni.$re.unipluginLog(JSON.stringify(extendParams));
-        uni.$re.unipluginLog("-----------");
-
-
         return { data: { elementParamGroups: elementParamGroups, extendParams: extendParams }, isSuccess: true, errMsg: "", };
     }
 );
@@ -1353,12 +1328,12 @@ export const element_v3_getVectorParam = createApiHandler(
     ["dataSetId", "elemId"],
     async function element_v3_getVectorParam(data: any) {
         const file_store = useFileStore();
-        const fileRootPath = `${file_store.rootPath}/${file_store.fileName}`;
+        const fileRootPath = `${file_store.filePath}`;
         const filePath_res = `${fileRootPath}/res`;
         const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
 
         // 获取当前资源是场景还是单数据集
-        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.useFileUniToApp({ type: "getAllSubFileList", data: { filePath: filePath_res } }, cb));
+        const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetAllChild({ filePath: filePath_res }, cb));
         if (!res_folder.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
         const fileList = res_folder.data;
         const allFolders = fileList.filter((item: any) => item.isDirectory);
@@ -1376,7 +1351,7 @@ export const element_v3_getVectorParam = createApiHandler(
             const sql_param = `SELECT * FROM "${dataSetId_noline}_vector_params" WHERE Elem_Id = "${data.elemId}";`;
             const res_param: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_param }, cb));
             if (!res_param.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
-            uni.$re.unipluginLog(JSON.stringify(res_param.data));
+
             for (const item of res_param.data) {
                 const param: any = {
                     key: item.Vector_Key,
@@ -1395,23 +1370,20 @@ export const element_v3_getVectorParam = createApiHandler(
 export const componentLibrary_v3_getComponentParamTypes = createApiHandler(
     ["dataSetId", "hostFileId"],
     async function componentLibrary_v3_getComponentParamTypes(data: any) {
-        uni.$re.unipluginLog("-----------");
         const file_store = useFileStore();
-        const fileRootPath = `${file_store.rootPath}/${file_store.fileName}`;
+        const fileRootPath = `${file_store.filePath}`;
         const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
 
         // 获取场景数据库文件
-        const res_sceneDBFile: any = await uni.$tool.toPromise((cb: any) => uni.$re.file_getChildBySuffix({ filePath: `${fileRootPath}/data`, suffix: ".db" }, cb));
+        const res_sceneDBFile: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetChildBySuffix({ filePath: `${fileRootPath}/data`, suffix: ".db" }, cb));
         if (!res_sceneDBFile.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
 
         const { filePath } = res_sceneDBFile.data[0];
         const dbPath = filePath;// 获取数据库文件路径（单构件只存在场景中）
 
         // 判断表是否存在
-        const sql_comp_param_map = `SELECT count(*) FROM sqlite_master WHERE type='table' AND name="${dataSetId_noline}_component_params_map";`;
-        const res_comp_param_map: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbQuery({ dbPath: dbPath, sql: sql_comp_param_map }, cb));
-        if (!res_comp_param_map.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
-        if (res_comp_param_map.data[0] && !res_comp_param_map.data[0]["count(*)"]) return { data: [], isSuccess: true, errMsg: "", };
+        const res_tableExist_comp_param_map: any = await uni.$tool.toPromise((cb: any) => uni.$re.dbTableExist({ dbPath: dbPath, tableName: `${dataSetId_noline}_component_params_map` }, cb));
+        if (!res_tableExist_comp_param_map.data) return { data: [], isSuccess: true, errMsg: "", };
 
         //获取属性类型信息
         const sql_param_type = `SELECT * FROM "${dataSetId_noline}_component_params_map" WHERE HostFile_Id = ${data.hostFileId * -1};`;
@@ -1426,9 +1398,6 @@ export const componentLibrary_v3_getComponentParamTypes = createApiHandler(
             };
             paramTypeList.push(param);
         }
-
-        uni.$re.unipluginLog(JSON.stringify(paramTypeList));
-        uni.$re.unipluginLog("-----------");
         return { data: paramTypeList, isSuccess: true, errMsg: "", };
     }
 );
@@ -1438,11 +1407,11 @@ export const componentLibrary_v3_getComponentProperty = createApiHandler(
     ["dataSetId", "dataSetType", "hostFileId", "id", "paramType"],
     async function componentLibrary_v3_getComponentProperty(data: any) {
         const file_store = useFileStore();
-        const fileRootPath = `${file_store.rootPath}/${file_store.fileName}`;
+        const fileRootPath = `${file_store.filePath}`;
         const dataSetId_noline = data.dataSetId.replace(/-/g, "");//不能使用replaceAll,app端异常
 
         // 获取场景数据库文件
-        const res_sceneDBFile: any = await uni.$tool.toPromise((cb: any) => uni.$re.file_getChildBySuffix({ filePath: `${fileRootPath}/data`, suffix: ".db" }, cb));
+        const res_sceneDBFile: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetChildBySuffix({ filePath: `${fileRootPath}/data`, suffix: ".db" }, cb));
         if (!res_sceneDBFile.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
 
         const { filePath } = res_sceneDBFile.data[0];
@@ -1568,17 +1537,17 @@ const urlToHandler: Record<string, (data: any) => Promise<any>> = {
 
 
 /**
- * 统一POST请求入口
+ * 统一请求入口
  * @param url 请求路径 如 "/engine/v3/room/exists"
  * @param data 请求参数
  * @param toast 是否显示提示
  * @returns Promise<any>
  */
-export function requestPost(url: string, data?: object, toast: boolean = true): Promise<any> {
+export function requestOffline(url: string, data?: object, toast: boolean = true): Promise<any> {
     return new Promise<any>((resolve, reject) => {
         // 1. 参数校验
         if (!url) {
-            const errorMsg = "requestPost: URL不能为空";
+            const errorMsg = "request: URL不能为空";
             console.error(errorMsg);
             toast && uni.showToast({ title: errorMsg, icon: "none" });
             reject(new Error(errorMsg));
@@ -1588,7 +1557,7 @@ export function requestPost(url: string, data?: object, toast: boolean = true): 
         // 2. 直接从映射对象取处理方法（无需转换方法名）
         const handler = urlToHandler[url];
         if (!handler) {
-            const errorMsg = `requestPost: 未找到URL对应的处理方法 - ${url}`;
+            const errorMsg = `request: 未找到URL对应的处理方法 - ${url}`;
             console.error(errorMsg);
             toast && uni.showToast({ title: errorMsg, icon: "none" });
             reject(new Error(errorMsg));
@@ -1602,7 +1571,7 @@ export function requestPost(url: string, data?: object, toast: boolean = true): 
                 resolve(res);
             })
             .catch((err) => {
-                const errorMsg = `requestPost执行失败：${err.message}`;
+                const errorMsg = `request 执行失败：${err.message}`;
                 console.error(errorMsg);
                 // toast && uni.showToast({ title: errorMsg, icon: "none" });
                 reject(err);
@@ -1610,45 +1579,3 @@ export function requestPost(url: string, data?: object, toast: boolean = true): 
     });
 }
 
-/**
- * 统一GET请求入口
- * @param url 请求路径 如 "/engine/v3/room/info"
- * @param params 请求参数
- * @param toast 是否显示提示
- * @returns Promise<any>
- */
-export function requestGet(url: string, params?: object, toast: boolean = true): Promise<any> {
-    return new Promise<any>((resolve, reject) => {
-        // 1. 参数校验
-        if (!url) {
-            const errorMsg = "requestGet: URL不能为空";
-            console.error(errorMsg);
-            toast && uni.showToast({ title: errorMsg, icon: "none" });
-            reject(new Error(errorMsg));
-            return;
-        }
-
-        // 2. 直接从映射对象取处理方法
-        const handler = urlToHandler[url];
-        if (!handler) {
-            const errorMsg = `requestGet: 未找到URL对应的处理方法 - ${url}`;
-            console.error(errorMsg);
-            toast && uni.showToast({ title: errorMsg, icon: "none" });
-            reject(new Error(errorMsg));
-            return;
-        }
-
-        // 3. 执行方法并处理结果
-        handler(params)
-            .then((res) => {
-                // toast && uni.showToast({ title: "操作成功", icon: "success" });
-                resolve(res);
-            })
-            .catch((err) => {
-                const errorMsg = `requestGet执行失败：${err.message}`;
-                console.error(errorMsg);
-                // toast && uni.showToast({ title: errorMsg, icon: "none" });
-                reject(err);
-            });
-    });
-}

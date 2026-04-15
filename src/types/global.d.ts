@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-13 18:01:53
- * @LastEditTime: 2026-04-13 10:51:15
+ * @LastEditTime: 2026-04-14 10:56:20
  */
 
 
@@ -25,7 +25,11 @@ declare global {
             getLocFileList(data: any, onCallBack: (data: any) => void): void;
             delFile(data: any, onCallBack: (data: any) => void): void;
             selFile(data: any, onCallBack: (data: any) => void): void;
+
+            
             showOfflineEngine(data: any, onCallBack: (data: any) => void): void;
+            fileGetAllChild(data: any, onCallBack: (data: any) => void): void;
+            fileGetChildBySuffix(data: any, onCallBack: (data: any) => void): void;
             dbQuery(data: any, onCallBack: (data: any) => void): void;
             dbTableExist(data: any, onCallBack: (data: any) => void): void;
         }

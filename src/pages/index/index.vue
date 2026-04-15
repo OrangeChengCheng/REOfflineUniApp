@@ -1,7 +1,7 @@
 <!--
  * @Author: Lemon C
  * @Date: 2026-01-22 10:16:05
- * @LastEditTime: 2026-04-13 18:26:37
+ * @LastEditTime: 2026-04-14 16:50:03
 -->
 <template>
     <view class="content">
@@ -63,6 +63,19 @@
             <progress :percent="percentage" show-info stroke-width="3" />
         </view>
         <view class="file-area">
+            <view class="file-item" v-for="item in fileLocList">
+                <view class="file-item-left">
+                    <text class="item-text">文件名：{{ item.fileName }}</text>
+                    <text class="item-text">模型类型：{{ item.typeStr }}</text>
+                    <text class="item-text">类型：{{ item.fileType }}</text>
+                    <text class="item-text">文件大小：{{ item.fileSizeDesc }}</text>
+                </view>
+                <view class="file-item-right">
+                    <el-button type="primary" @click.stop="showFileEngine(item)">查看资源</el-button>
+                </view>
+            </view>
+        </view>
+        <!-- <view class="file-area">
             <view class="file-item" v-for="item in offlineFileList">
                 <view class="file-item-left">
                     <text class="item-text">文件名：{{ item.fileName }}</text>
@@ -72,7 +85,7 @@
                     <el-button type="primary" @click.stop="showFileEngine(item)">查看资源</el-button>
                 </view>
             </view>
-        </view>
+        </view> -->
         <view class="info-area">
             {{ fileStr_computed }}
         </view>
@@ -80,9 +93,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, nextTick, onMounted } from 'vue';
 import dataTool from '@/utils/dataTool';
 import { useFileStore } from '@/stores/file';
+import { styleType } from 'element-plus/es/components/table-v2/src/common';
 
 const file_store = useFileStore();
 
@@ -158,6 +172,8 @@ const filePath_save = ref('');
 const fileList_loc = ref({});
 const fileList_apploc = ref([]);
 
+const fileLocList = ref<any[]>([]);
+
 const fileStr_computed = computed(() => {
     return `文件名称：${FILE_META.customName}
     \n 文件下载路径：${FILE_META.downloadUrl}
@@ -166,6 +182,28 @@ const fileStr_computed = computed(() => {
     \n 文件列表：${JSON.stringify(fileList.value)}
     \n 文件映射表：${JSON.stringify(fileList_loc.value)}
     \n app文件列表：${JSON.stringify(fileList_apploc.value)}`;
+});
+
+onMounted(async () => {
+    // 获取文件列表
+    const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetAllChild({ filePath: file_store.rootPath }, cb));
+    const fileList: any[] = [];
+    for (const el of res_folder.data) {
+        if (el.directory) {
+            const typeStr: string = el.fileName.match(/\[(.*?)\]/) ? el.fileName.match(/\[(.*?)\]/)[1] : '';
+            typeStr.includes('scene') ? (el.type = 2) : typeStr.includes('cad') ? (el.type = 3) : (el.type = 1);
+            el.dataSetTypeStr = typeStr;
+            el.typeStr = el.type ? (el.type == 2 ? '场景' : '单模型') : '非模型文件';
+
+            // 获取数据库文件
+            const res_dbFile: any = await uni.$tool.toPromise((cb: any) =>
+                uni.$re.fileGetChildBySuffix({ filePath: `${el.filePath}/data`, suffix: '.db' }, cb)
+            );
+            el.id = res_dbFile.data[0].fileName.replace('.db', '');
+        }
+        fileList.push(el);
+    }
+    fileLocList.value = fileList;
 });
 
 const shouEngine = () => {
@@ -512,12 +550,31 @@ const selFile = () => {
 };
 
 const showFileEngine = (item: any) => {
-    file_store.fileName = item.fileName;
-    const params = { dataSetIds: item.type == 2 ? item.subId : [item.id] };
-    uni.$service.getDataSetList(params).then((res: any) => {
-        const param_t = { filePath: `${file_store.rootPath}/${file_store.fileName}`, dataSetList: res, shareType: item.type, sceneId: item.id };
-        uni.$re.showOfflineEngine(param_t, (res: any) => {});
-    });
+    // file_store.fileName = item.fileName;
+    // file_store.filePath = item.filePath;
+    // const params = { dataSetIds: item.type == 2 ? item.subId : [item.id] };
+    // uni.$service.getDataSetList(params).then((res: any) => {
+    //     const param_t = { filePath: `${file_store.rootPath}/${file_store.fileName}`, dataSetList: res, shareType: item.type, sceneId: item.id };
+    //     uni.$re.showOfflineEngine(param_t, (res: any) => {});
+    // });
+
+    if (!item.directory) {
+        uni.showToast({ title: '该文件不可操作', icon: 'none' });
+        return;
+    }
+
+    // 场景
+    if (item.type == 2) {
+        getScene(item);
+    }
+    // CAD
+    else if (item.type == 3) {
+        getCAD(item);
+    }
+    // 单模型
+    else {
+        getModels(item);
+    }
 };
 
 const dbQuery = (item: any) => {
@@ -555,6 +612,7 @@ const dbTableExist = (item: any) => {
 
 const getDataSetList = (item: any) => {
     file_store.fileName = item.fileName;
+    file_store.filePath = item.filePath;
     let params = { dataSetIds: item.type == 2 ? item.subId : [item.id] };
     uni.$service.getDataSetList(params).then((res: any) => {
         uni.showModal({
@@ -566,6 +624,7 @@ const getDataSetList = (item: any) => {
 
 const getScene = async (item: any) => {
     file_store.fileName = item.fileName;
+    file_store.filePath = item.filePath;
 
     // 获取场景信息
     const res_1 = await uni.$service.getSceneInfo(item.id);
@@ -589,7 +648,7 @@ const getScene = async (item: any) => {
     const dataSetList = dataTool.handle_dataSetId(dataSetList_temp2);
 
     const engineData = {
-        filePath: `${file_store.rootPath}/${file_store.fileName}`,
+        filePath: item.filePath,
         sceneId: item.id,
         projName: item.fileName,
         dataSetList: dataSetList,
@@ -608,12 +667,13 @@ const getScene = async (item: any) => {
 
 const getModels = async (item: any) => {
     file_store.fileName = item.fileName;
+    file_store.filePath = item.filePath;
 
     // 获取资源数据
     const dataSetList = await uni.$service.getDataSetList({ dataSetIds: [item.id] });
 
     const engineData = {
-        filePath: `${file_store.rootPath}/${file_store.fileName}`,
+        filePath: item.filePath,
         sceneId: item.id,
         projName: item.fileName,
         dataSetList: dataSetList,
@@ -625,12 +685,13 @@ const getModels = async (item: any) => {
 };
 const getCAD = async (item: any) => {
     file_store.fileName = item.fileName;
+    file_store.filePath = item.filePath;
 
     // 获取资源数据
     const cadDataSetList = await uni.$service.getCadDataSetList({ dataSetId: item.id });
 
     const engineData = {
-        filePath: `${file_store.rootPath}/${file_store.fileName}`,
+        filePath: item.filePath,
         sceneId: item.id,
         projName: item.fileName,
         dataSetList: cadDataSetList,
@@ -659,6 +720,7 @@ const handle_getRoomName = (treeData: any, formatType: any = 0) => {
 
 const getTreeNode = async (item: any) => {
     file_store.fileName = item.fileName;
+    file_store.filePath = item.filePath;
 
     // 获取模型目录树
     const res = await uni.$service.getModelTree({ dataSetId: item.id });
@@ -679,6 +741,7 @@ const getTreeNode = async (item: any) => {
 };
 const getTreeNode_lazy = async (item: any) => {
     file_store.fileName = item.fileName;
+    file_store.filePath = item.filePath;
 
     // 获取模型目录树
     const res = await uni.$service.getModelTree({ dataSetId: item.id });
@@ -700,6 +763,7 @@ const getTreeNode_lazy = async (item: any) => {
 };
 const getElemIdList = async (item: any) => {
     file_store.fileName = item.fileName;
+    file_store.filePath = item.filePath;
 
     const params = {
         dataSets: [
@@ -766,6 +830,7 @@ const getElemIdList = async (item: any) => {
 };
 const getElemIdList_lazy = async (item: any) => {
     file_store.fileName = item.fileName;
+    file_store.filePath = item.filePath;
 
     const params = {
         dataSetId: '3a1dac58-810a-6b00-995a-472456285d3d',
@@ -781,6 +846,7 @@ const getElemIdList_lazy = async (item: any) => {
 };
 const getRoomList = async (item: any) => {
     file_store.fileName = item.fileName;
+    file_store.filePath = item.filePath;
 
     // 获取模型目录树
     const res = await uni.$service.getModelTree({ dataSetId: item.id });
@@ -807,10 +873,14 @@ const getRoomList = async (item: any) => {
         return item;
     });
 
-    uni.$re.unipluginLog(JSON.stringify(roomTreeData));
+    uni.showModal({
+        title: 'getRoomList',
+        content: JSON.stringify(roomTreeData),
+    });
 };
 const getRoomInfo = async (item: any) => {
     file_store.fileName = item.fileName;
+    file_store.filePath = item.filePath;
 
     const params = {
         dataSetId: item.id,
@@ -835,6 +905,7 @@ const getRoomInfo = async (item: any) => {
 
 const getAttr_model = async (item: any) => {
     file_store.fileName = item.fileName;
+    file_store.filePath = item.filePath;
 
     let params = {
         dataSetId: item.id,
@@ -850,6 +921,7 @@ const getAttr_model = async (item: any) => {
 };
 const getAttr_shp = async (item: any) => {
     file_store.fileName = item.fileName;
+    file_store.filePath = item.filePath;
 
     let params = { dataSetId: '3a1d16de-f277-f6a3-c1b3-cdec88c8e7fc', elemId: 'GlobalPageShp_3a1d16def277f6a3c1b3cdec88c8e7fc_260331170939_2' };
     const res = await uni.$service.getVectorParam(params);
@@ -861,6 +933,7 @@ const getAttr_shp = async (item: any) => {
 };
 const getAttr_shp_scene = async (item: any) => {
     file_store.fileName = item.fileName;
+    file_store.filePath = item.filePath;
 
     let params = { dataSetId: '3a2036c2-0b9a-d7c2-789a-b96b53d62e4d', elemId: 'GlobalPageShp_3a2036c20b9ad7c2789ab96b53d62e4d_260325184540_2' };
     const res = await uni.$service.getVectorParam(params);
@@ -872,6 +945,7 @@ const getAttr_shp_scene = async (item: any) => {
 };
 const getAttr_entity_default = async (item: any) => {
     file_store.fileName = item.fileName;
+    file_store.filePath = item.filePath;
 
     // 获取属性类型
     let params_type = { dataSetId: '3a2097d5-549b-c06c-606b-8d94af753612', hostFileId: 1 };
@@ -899,6 +973,7 @@ const getAttr_entity_default = async (item: any) => {
 };
 const getAttr_entity = async (item: any) => {
     file_store.fileName = item.fileName;
+    file_store.filePath = item.filePath;
 
     // 获取属性类型
     let params_type = { dataSetId: '3a2097d5-549b-c06c-606b-8d94af753612', hostFileId: 2 };
@@ -982,11 +1057,11 @@ const getAttr_entity = async (item: any) => {
         position: relative;
         margin-top: 30px;
         width: 100%;
-        height: 100px;
+        // height: 100px;
         display: flex;
         border-radius: 8px;
         border: 1px solid #dddddd;
-        padding: 0 15px;
+        padding: 15px 15px;
         box-sizing: border-box;
         overflow: hidden;
 
@@ -1001,6 +1076,7 @@ const getAttr_entity = async (item: any) => {
 
             .item-text {
                 position: relative;
+                margin-top: 5px;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
