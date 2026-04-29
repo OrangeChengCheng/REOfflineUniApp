@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2025-11-19 14:50:45
- * @LastEditTime: 2026-04-13 10:49:43
+ * @LastEditTime: 2026-04-29 17:50:42
  */
 import {
     isRoomExistService,
@@ -21,6 +21,7 @@ import {
     getVectorParam,
     getElemParamTypeService,
     getElemParamService,
+    getSharedExtrudeTexturesList,
 } from '@/service/interface';
 
 import dataTool from '@/utils/dataTool';
@@ -37,7 +38,7 @@ interface ApiMethods {
     getProjectTreeChildrenByLazy(params: any): Promise<any>;
     getDataSetList(params: any): Promise<any>;
     getCadDataSetList(params: any): Promise<any>;
-    // getExtrudeTexList(sceneTree: any): Promise<any>;
+    getExtrudeTexList(): Promise<any>;
     isRoomExistService(params: any): Promise<any>;
     getRoomList(params: any): Promise<any>;
     getRoomElement(params: any): Promise<any>;
@@ -385,6 +386,33 @@ const api: ApiMethods = {
         }
     },
 
+    // MARK Service 获取开挖纹理列表
+    getExtrudeTexList: async (): Promise<any> => {
+        try {
+            const res = await getSharedExtrudeTexturesList();
+            if (res.isSuccess) {
+                const intrinsicTextures = res.data.intrinsicTextures;
+                let textureList: any[] = [];
+                if (intrinsicTextures && intrinsicTextures.length) {
+                    textureList = intrinsicTextures.map((item: any) => {
+                        const picPath = item.texPath;// 离线查看使用的是本地资源，和平台网络资源区分
+                        const size = [5.0, 5.0];
+                        return {
+                            picPath: picPath,
+                            picSize: size,
+                            textureGuid: item.TextureImageId,
+                        };
+                    });
+                }
+                return textureList;
+            } else {
+                uni.$re.unipluginLog(res.errMsg || '挤出纹理信息获取失败');
+                throw new Error(res.errMsg || '挤出纹理信息获取失败');
+            }
+        } catch (error) {
+            throw error;
+        }
+    },
 
 
 

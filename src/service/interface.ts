@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-04-19 12:22:25
- * @LastEditTime: 2026-04-15 15:43:51
+ * @LastEditTime: 2026-04-29 17:26:17
  */
 import { requestOffline } from '@/service/offlineService';
 
@@ -100,4 +100,12 @@ export function getElemParamTypeService(data: any) {
 // 查询构件属性
 export function getElemParamService(data: any) {
     return requestOffline('/componentLibrary/v3/getComponentProperty', data);
+}
+
+
+
+// MOD-- 开挖 相关
+// 分享查看界面获取开挖纹理列表
+export function getSharedExtrudeTexturesList() {
+    return requestOffline('/sceneTree/v3/getSceneExcavateIntrinsicTextureImages');
 }

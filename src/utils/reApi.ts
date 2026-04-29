@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-14 14:22:08
- * @LastEditTime: 2026-04-14 10:57:12
+ * @LastEditTime: 2026-04-29 15:44:02
  */
 
 
@@ -12,20 +12,25 @@ interface ApiMethods {
     isNavivePlugin(): boolean;
     registerAppMsg(onCallBack: (data: any) => void): Promise<void>; // 添加一个回调参数来处理每条消息
     sendMsgUniToApp(data: any): void;
-    unzipFile(data: any, onCallBack: (data: any) => void): void;
-    saveUniFile(data: any, onCallBack: (data: any) => void): void;
-    getLocFileList(data: any, onCallBack: (data: any) => void): void;
-    useFileUniToApp(data: any, onCallBack: (data: any) => void): void;
-    file_getChildBySuffix(data: any, onCallBack: (data: any) => void): void;
-    delFile(data: any, onCallBack: (data: any) => void): void;
+
+    
+
+
     selFile(data: any, onCallBack: (data: any) => void): void;
-
-
-
+    
+    
+    
     showOfflineEngine(data: any, onCallBack: (data: any) => void): void;
-
+    
     fileGetAllChild(data: any, onCallBack: (data: any) => void): void;
     fileGetChildBySuffix(data: any, onCallBack: (data: any) => void): void;
+    fileDelAllSubFile(data: any, onCallBack: (data: any) => void): void;
+    fileGetAppRootFolder(data: any, onCallBack: (data: any) => void): void;
+    fileCopyFile(data: any, onCallBack: (data: any) => void): void;
+    fileExist(data: any, onCallBack: (data: any) => void): void;
+    
+    unzipFile(data: any, onCallBack: (data: any) => void): void;
+    zipGetComments(data: any, onCallBack: (data: any) => void): void;
 
     dbQuery(data: any, onCallBack: (data: any) => void): void;
     dbTableExist(data: any, onCallBack: (data: any) => void): void;
@@ -82,55 +87,13 @@ const api: ApiMethods = {
 
 
 
-    unzipFile: (data: any, onCallBack: (data: any) => void) => {
-        api.getREModule()?.unzipFile(data, (res: any) => {
-            // 不能使用promise的resolve进行返回，要使用传递回调进行处理，不然resolve执行后函数就结束，无法再次执行resolve，需要保持函数一直在，使用参数的回调
-            onCallBack(res);
-        });
-    },
 
 
-    saveUniFile: (data: any, onCallBack: (data: any) => void) => {
-        api.getREModule()?.saveUniFile(data, (res: any) => {
-            // 不能使用promise的resolve进行返回，要使用传递回调进行处理，不然resolve执行后函数就结束，无法再次执行resolve，需要保持函数一直在，使用参数的回调
-            onCallBack(res);
-        });
-    },
 
 
-    useFileUniToApp: (data: any, onCallBack: (data: any) => void) => {
-        const module = api.getREModule();
-        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
-        module.useFileUniToApp(data, (res: any) => {
-            // 不能使用promise的resolve进行返回，要使用传递回调进行处理，不然resolve执行后函数就结束，无法再次执行resolve，需要保持函数一直在，使用参数的回调
-            onCallBack(res);
-        });
-    },
-
-    file_getChildBySuffix: (data: any, onCallBack: (data: any) => void) => {
-        const module = api.getREModule();
-        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
-        module.fileGetChildBySuffix(data, (res: any) => {
-            // 不能使用promise的resolve进行返回，要使用传递回调进行处理，不然resolve执行后函数就结束，无法再次执行resolve，需要保持函数一直在，使用参数的回调
-            onCallBack(res);
-        });
-    },
 
 
-    getLocFileList: (data: any, onCallBack: (data: any) => void) => {
-        api.getREModule()?.getLocFileList(data, (res: any) => {
-            // 不能使用promise的resolve进行返回，要使用传递回调进行处理，不然resolve执行后函数就结束，无法再次执行resolve，需要保持函数一直在，使用参数的回调
-            onCallBack(res);
-        });
-    },
 
-
-    delFile: (data: any, onCallBack: (data: any) => void) => {
-        api.getREModule()?.delFile(data, (res: any) => {
-            // 不能使用promise的resolve进行返回，要使用传递回调进行处理，不然resolve执行后函数就结束，无法再次执行resolve，需要保持函数一直在，使用参数的回调
-            onCallBack(res);
-        });
-    },
 
     selFile: (data: any, onCallBack: (data: any) => void) => {
         api.getREModule()?.selFile(data, (res: any) => {
@@ -151,8 +114,6 @@ const api: ApiMethods = {
         });
     },
 
-    // MOD-- 压缩包模块 <---
-
 
     // MOD-- 文件模块 <---
     // 获取指定文件夹下所有文件列表
@@ -172,6 +133,62 @@ const api: ApiMethods = {
             onCallBack(res);
         });
     },
+
+    // 递归删除指定路径下的所有内容
+    fileDelAllSubFile: (data: any, onCallBack: (data: any) => void) => {
+        const module = api.getREModule();
+        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
+        module.fileDelAllSubFile(data, (res: any) => {
+            onCallBack(res);
+        });
+    },
+
+    // 获取沙盒默认存储路径（外部存储）
+    fileGetAppRootFolder: (data: any, onCallBack: (data: any) => void) => {
+        const module = api.getREModule();
+        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
+        module.fileGetAppRootFolder(data, (res: any) => {
+            onCallBack(res);
+        });
+    },
+
+    // 拷贝单个文件（外部存储）
+    fileCopyFile: (data: any, onCallBack: (data: any) => void) => {
+        const module = api.getREModule();
+        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
+        module.fileCopyFile(data, (res: any) => {
+            onCallBack(res);
+        });
+    },
+
+    // 判断文件是否存在
+    fileExist: (data: any, onCallBack: (data: any) => void) => {
+        const module = api.getREModule();
+        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
+        module.fileExist(data, (res: any) => {
+            onCallBack(res);
+        });
+    },
+
+    // MOD-- 压缩包模块 <---
+    // 解压ZIP文件（支持加密）
+    unzipFile: (data: any, onCallBack: (data: any) => void) => {
+        const module = api.getREModule();
+        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
+        module.unzipFile(data, (res: any) => {
+            onCallBack(res);
+        });
+    },
+
+    // 仅读取ZIP注释信息（不解压/支持加密）
+    zipGetComments: (data: any, onCallBack: (data: any) => void) => {
+        const module = api.getREModule();
+        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
+        module.zipGetComments(data, (res: any) => {
+            onCallBack(res);
+        });
+    },
+
 
     // MOD-- 数据库模块 <---
     // 数据库查询

@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-13 18:01:53
- * @LastEditTime: 2026-04-14 10:56:20
+ * @LastEditTime: 2026-04-29 17:51:15
  */
 
 
@@ -18,18 +18,19 @@ declare global {
             realEngineRender(data: any): Promise<any>;
             registerAppMsg(onCallBack: (data: any) => void): Promise<void>;
             sendMsgUniToApp(data: any): void;
-            unzipFile(data: any, onCallBack: (data: any) => void): void;
-            saveUniFile(data: any, onCallBack: (data: any) => void): void;
-            useFileUniToApp(data: any, onCallBack: (data: any) => void): void;
-            file_getChildBySuffix(data: any, onCallBack: (data: any) => void): void;
-            getLocFileList(data: any, onCallBack: (data: any) => void): void;
-            delFile(data: any, onCallBack: (data: any) => void): void;
-            selFile(data: any, onCallBack: (data: any) => void): void;
 
+            selFile(data: any, onCallBack: (data: any) => void): void;
+            
             
             showOfflineEngine(data: any, onCallBack: (data: any) => void): void;
             fileGetAllChild(data: any, onCallBack: (data: any) => void): void;
             fileGetChildBySuffix(data: any, onCallBack: (data: any) => void): void;
+            fileDelAllSubFile(data: any, onCallBack: (data: any) => void): void;
+            fileGetAppRootFolder(data: any, onCallBack: (data: any) => void): void;
+            fileCopyFile(data: any, onCallBack: (data: any) => void): void;
+            fileExist(data: any, onCallBack: (data: any) => void): void;
+            unzipFile(data: any, onCallBack: (data: any) => void): void;
+            zipGetComments(data: any, onCallBack: (data: any) => void): void;
             dbQuery(data: any, onCallBack: (data: any) => void): void;
             dbTableExist(data: any, onCallBack: (data: any) => void): void;
         }
@@ -44,7 +45,7 @@ declare global {
             getProjectTreeChildrenByLazy(params: any): Promise<any>;
             getDataSetList(params: any): Promise<any>;
             getCadDataSetList(params: any): Promise<any>;
-            // getExtrudeTexList(sceneTree: any): Promise<any>;
+            getExtrudeTexList(): Promise<any>;
             isRoomExistService(params: any): Promise<any>;
             getRoomList(params: any): Promise<any>;
             getRoomElement(params: any): Promise<any>;
@@ -65,9 +66,15 @@ declare global {
             time_compare(frontTime: Date, backTime: Date): string;
             time_format(utcTime: Date): string;
         };
+        $downloadTool: {
+            downloadFile(url: any, onProgress?: (progress: number) => void): Promise<any>;
+        };
         scan_code(): Promise<any>;
         show_loading(): void;
         hide_loading(): void;
+        get_SystemInfo(): any;
+        pop_showModal(title: any, content: any): Promise<any>;
+        file_download(title: any, holder: any): Promise<any>;
     }
 }
 

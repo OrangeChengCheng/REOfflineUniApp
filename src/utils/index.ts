@@ -1,13 +1,14 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-14 10:05:14
- * @LastEditTime: 2026-04-10 11:42:27
+ * @LastEditTime: 2026-04-29 17:51:04
  */
 import config from './config'
 import reApi from './reApi'
 import uniApi from './uniApi'
 import tool from './tool'
 import serviceApi from './serviceApi'
+import downloadTool from './downloadTool'
 
 
 export default {
@@ -26,7 +27,7 @@ export default {
             getProjectTreeChildrenByLazy: serviceApi.getProjectTreeChildrenByLazy,
             getDataSetList: serviceApi.getDataSetList,
             getCadDataSetList: serviceApi.getCadDataSetList,
-            // getExtrudeTexList: serviceApi.getExtrudeTexList,
+            getExtrudeTexList: serviceApi.getExtrudeTexList,
             isRoomExistService: serviceApi.isRoomExistService,
             getRoomList: serviceApi.getRoomList,
             getRoomElement: serviceApi.getRoomElement,
@@ -42,18 +43,18 @@ export default {
             realEngineRender: reApi.realEngineRender,
             registerAppMsg: reApi.registerAppMsg,
             sendMsgUniToApp: reApi.sendMsgUniToApp,
-            unzipFile: reApi.unzipFile,
-            saveUniFile: reApi.saveUniFile,
-            useFileUniToApp: reApi.useFileUniToApp,
-            file_getChildBySuffix: reApi.file_getChildBySuffix,
-            getLocFileList: reApi.getLocFileList,
-            delFile: reApi.delFile,
             selFile: reApi.selFile,
-
+            
             
             showOfflineEngine: reApi.showOfflineEngine,
             fileGetAllChild: reApi.fileGetAllChild,
             fileGetChildBySuffix: reApi.fileGetChildBySuffix,
+            fileDelAllSubFile: reApi.fileDelAllSubFile,
+            fileGetAppRootFolder: reApi.fileGetAppRootFolder,
+            fileCopyFile: reApi.fileCopyFile,
+            fileExist: reApi.fileExist,
+            unzipFile: reApi.unzipFile,
+            zipGetComments: reApi.zipGetComments,
             dbQuery: reApi.dbQuery,
             dbTableExist: reApi.dbTableExist,
         };
@@ -68,8 +69,14 @@ export default {
             time_compare: tool.time_compare,
             time_format: tool.time_format,
         };
+        uni.$downloadTool = {
+            downloadFile:downloadTool.downloadFile,
+        };
         uni.scan_code = uniApi.scan_code;
         uni.show_loading = uniApi.show_loading;
         uni.hide_loading = uniApi.hide_loading;
+        uni.get_SystemInfo = uniApi.get_SystemInfo;
+        uni.pop_showModal = uniApi.pop_showModal;
+        uni.file_download = uniApi.file_download;
     }
 }

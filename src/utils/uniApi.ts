@@ -10,6 +10,8 @@ interface ApiMethods {
     hide_loading(): void;
     get_deviceInfo(): void;
     get_SystemInfo(): any;
+    pop_showModal(title: any, content: any): Promise<any>;
+    file_download(title: any, holder: any): Promise<any>;
 }
 
 const api: ApiMethods = {
@@ -140,6 +142,35 @@ const api: ApiMethods = {
         const info = uni.getSystemInfoSync();
         return info;
     },
+
+    // MARK uni-app  确认弹窗
+    pop_showModal: (title: any, content: any): Promise<any> => {
+        return new Promise((resolve) => {
+            uni.showModal({
+                title: title,
+                content: content,
+                success: (res) => {
+                    resolve(res); // 把结果返回出去
+                },
+            });
+        });
+    },
+
+    // MARK uni-app  下载文件
+    file_download: (url: any, holder: any): any => {
+        return new Promise((resolve, reject) => {
+            // 外部传入对象，内部给对象的 task 属性赋值，不然无法正确将值传递出去
+            holder.task = uni.downloadFile({
+                url: url,
+                success: (res) => {
+                    if (res.statusCode === 200) resolve(res);
+                    else reject(res);
+                },
+                fail: reject,
+            });
+        });
+    },
+
 
 }
 
