@@ -53,6 +53,7 @@ export default {
             fileGetAppRootFolder: reApi.fileGetAppRootFolder,
             fileCopyFile: reApi.fileCopyFile,
             fileExist: reApi.fileExist,
+            fileCreateFolder: reApi.fileCreateFolder,
             unzipFile: reApi.unzipFile,
             zipGetComments: reApi.zipGetComments,
             dbQuery: reApi.dbQuery,

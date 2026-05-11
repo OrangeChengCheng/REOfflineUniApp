@@ -37,13 +37,20 @@ export const useFileStore = defineStore('file', {
 
 			const roolFolderPath = roolFolder.data.filePath;
 			this.appRootPath = roolFolderPath;
-
+			
 			if (!e || !e.osName || e.osName === 'ios') {
 				this.resRootPath = roolFolderPath + "/Documents/REOfflineDoc";
 				this.uniDownloadTempPath = roolFolderPath + "/Library/Pandora/apps";
 			} else {
 				this.resRootPath = roolFolderPath + "/files/REOfflineDoc";
 				this.uniDownloadTempPath = roolFolderPath + "/apps";
+			}
+
+			// 判断资源根目录是否存在
+			const res_fileExist = await uni.$tool.toPromise((cb: any) => uni.$re.fileExist({ filePath: this.resRootPath }, cb));
+			if (!res_fileExist.data) {
+				// 创建资源根目录
+				await uni.$tool.toPromise((cb: any) => uni.$re.fileCreateFolder({ folderPath: this.resRootPath }, cb));
 			}
 		},
 	}

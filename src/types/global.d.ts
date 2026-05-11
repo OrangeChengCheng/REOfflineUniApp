@@ -29,6 +29,7 @@ declare global {
             fileGetAppRootFolder(data: any, onCallBack: (data: any) => void): void;
             fileCopyFile(data: any, onCallBack: (data: any) => void): void;
             fileExist(data: any, onCallBack: (data: any) => void): void;
+            fileCreateFolder(data: any, onCallBack: (data: any) => void): void;
             unzipFile(data: any, onCallBack: (data: any) => void): void;
             zipGetComments(data: any, onCallBack: (data: any) => void): void;
             dbQuery(data: any, onCallBack: (data: any) => void): void;

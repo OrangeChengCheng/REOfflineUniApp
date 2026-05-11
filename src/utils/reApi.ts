@@ -28,6 +28,7 @@ interface ApiMethods {
     fileGetAppRootFolder(data: any, onCallBack: (data: any) => void): void;
     fileCopyFile(data: any, onCallBack: (data: any) => void): void;
     fileExist(data: any, onCallBack: (data: any) => void): void;
+    fileCreateFolder(data: any, onCallBack: (data: any) => void): void;
     
     unzipFile(data: any, onCallBack: (data: any) => void): void;
     zipGetComments(data: any, onCallBack: (data: any) => void): void;
@@ -166,6 +167,15 @@ const api: ApiMethods = {
         const module = api.getREModule();
         if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
         module.fileExist(data, (res: any) => {
+            onCallBack(res);
+        });
+    },
+
+    // 创建文件夹
+    fileCreateFolder: (data: any, onCallBack: (data: any) => void) => {
+        const module = api.getREModule();
+        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
+        module.fileCreateFolder(data, (res: any) => {
             onCallBack(res);
         });
     },

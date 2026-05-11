@@ -111,6 +111,7 @@ const downloadAndUnzipFile = async () => {
         title: '下载成功',
         content: JSON.stringify(resPath),
     });
+	updateList();
 };
 
 const unzipFile = async (item:any) => {
