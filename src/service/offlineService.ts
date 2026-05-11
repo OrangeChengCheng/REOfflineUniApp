@@ -503,7 +503,7 @@ export const dataSet_v3_dataSetFileTreeNodes = createApiHandler(
         const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetAllChild({ filePath: filePath_res }, cb));
         if (!res_folder.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
         const fileList = res_folder.data;
-        const allFolders = fileList.filter((item: any) => item.isDirectory);
+        const allFolders = fileList.filter((item: any) => item.directory);
         // 判断是否存在「文件夹名 = dataSetId」的匹配, 如果存在和数据集id相同的文件夹，代表文件是场景类型
         const isScene = allFolders.some((folder: any) =>
             [data.dataSetId].includes(folder.fileName)
@@ -601,7 +601,7 @@ export const dataSet_v3_dataSetFileTreeNodes_lazy = createApiHandler(
         const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetAllChild({ filePath: filePath_res }, cb));
         if (!res_folder.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
         const fileList = res_folder.data;
-        const allFolders = fileList.filter((item: any) => item.isDirectory);
+        const allFolders = fileList.filter((item: any) => item.directory);
         // 判断是否存在「文件夹名 = dataSetId」的匹配, 如果存在和数据集id相同的文件夹，代表文件是场景类型
         const isScene = allFolders.some((folder: any) =>
             [data.dataSetId].includes(folder.fileName)
@@ -653,7 +653,7 @@ export const element_v3_getTreeChildren = createApiHandler(
         const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetAllChild({ filePath: filePath_res }, cb));
         if (!res_folder.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
         const fileList = res_folder.data;
-        const allFolders = fileList.filter((item: any) => item.isDirectory);
+        const allFolders = fileList.filter((item: any) => item.directory);
         // 判断是否存在「文件夹名 = dataSetId」的匹配, 如果存在和数据集id相同的文件夹，代表文件是场景类型
         const isScene = allFolders.some((folder: any) =>
             [dataSetId].includes(folder.fileName)
@@ -694,7 +694,7 @@ export const element_v3_getTreeChildren_lazy = createApiHandler(
         const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetAllChild({ filePath: filePath_res }, cb));
         if (!res_folder.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
         const fileList = res_folder.data;
-        const allFolders = fileList.filter((item: any) => item.isDirectory);
+        const allFolders = fileList.filter((item: any) => item.directory);
         // 判断是否存在「文件夹名 = dataSetId」的匹配, 如果存在和数据集id相同的文件夹，代表文件是场景类型
         const isScene = allFolders.some((folder: any) =>
             [data.dataSetId].includes(folder.fileName)
@@ -908,7 +908,7 @@ export const dataSet_v3_viewDataSetModel = createApiHandler(
         const fileList = res_folder.data;
         // 区分场景资源和单模型资源类型
         // 先找出 res 下所有文件夹
-        const allFolders = fileList.filter((item: any) => item.isDirectory);
+        const allFolders = fileList.filter((item: any) => item.directory);
         // 判断是否存在「文件夹名 = dataSetId」的匹配, 如果存在和数据集id相同的文件夹，代表文件是场景类型
         const isScene = allFolders.some((folder: any) =>
             data.dataSetIds.includes(folder.fileName)
@@ -1050,7 +1050,7 @@ export const dataSet_v3_viewDataSetModel = createApiHandler(
                 // 获取本地资源链接
                 // 场景2：res下有子文件夹 → 匹配名称等于dataSetId的文件夹 
                 const targetFolder = fileList.find((item: any) =>
-                    item.isDirectory && item.fileName === dataSetId
+                    item.directory && item.fileName === dataSetId
                 );
                 if (targetFolder) {
                     matchResult.resourcesAddress = targetFolder.filePath;
@@ -1222,7 +1222,7 @@ export const element_v3_getElementParam = createApiHandler(
         const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetAllChild({ filePath: filePath_res }, cb));
         if (!res_folder.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
         const fileList = res_folder.data;
-        const allFolders = fileList.filter((item: any) => item.isDirectory);
+        const allFolders = fileList.filter((item: any) => item.directory);
         // 判断是否存在「文件夹名 = dataSetId」的匹配, 如果存在和数据集id相同的文件夹，代表文件是场景类型
         const isScene = allFolders.some((folder: any) =>
             [data.dataSetId].includes(folder.fileName)
@@ -1336,7 +1336,7 @@ export const element_v3_getVectorParam = createApiHandler(
         const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetAllChild({ filePath: filePath_res }, cb));
         if (!res_folder.data) return { data: null, isSuccess: false, errMsg: "数据库信息获取失败", };
         const fileList = res_folder.data;
-        const allFolders = fileList.filter((item: any) => item.isDirectory);
+        const allFolders = fileList.filter((item: any) => item.directory);
         // 判断是否存在「文件夹名 = dataSetId」的匹配, 如果存在和数据集id相同的文件夹，代表文件是场景类型
         const isScene = allFolders.some((folder: any) =>
             [data.dataSetId].includes(folder.fileName)

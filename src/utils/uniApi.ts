@@ -1,4 +1,5 @@
 import { useDeviceStore } from '@/stores/device';
+import { useFileStore } from '@/stores/file';
 
 
 interface ApiMethods {
@@ -129,6 +130,8 @@ const api: ApiMethods = {
             success: (res) => {
                 const device_store = useDeviceStore();
                 device_store.update_deviceInfo(res);
+                const file_store = useFileStore();
+				file_store.update_rootPath(res);
             },
             fail: (err) => {
                 console.log(err);

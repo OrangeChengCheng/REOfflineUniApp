@@ -5,8 +5,11 @@
 -->
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app';
+import uniApi from '@/utils/uniApi';
+
 onLaunch(() => {
     console.log('App Launch');
+	uniApi.get_deviceInfo();
 });
 onShow(() => {
     console.log('App Show');

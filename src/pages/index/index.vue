@@ -22,12 +22,15 @@
             <view class="file-item" v-for="item in fileLocList">
                 <view class="file-item-left">
                     <text class="item-text">文件名：{{ item.fileName }}</text>
-                    <text class="item-text">模型类型：{{ item.typeStr }}</text>
+                    <text v-if="item.directory" class="item-text">模型类型：{{ item.typeStr }}</text>
                     <text class="item-text">类型：{{ item.fileType }}</text>
                     <text class="item-text">文件大小：{{ item.fileSizeDesc }}</text>
                 </view>
-                <view class="file-item-right">
+                <view v-if="item.directory" class="file-item-right">
                     <el-button type="primary" @click.stop="showFileEngine(item)">查看资源</el-button>
+                </view>
+                <view v-if="!item.directory && item.fileType=='zip'" class="file-item-right">
+                    <el-button type="primary" @click.stop="unzipFile(item)">解压文件</el-button>
                 </view>
             </view>
         </view>
@@ -45,12 +48,15 @@ const percentage = ref(0);
 const fileLocList = ref<any[]>([]);
 
 onMounted(async () => {
-    // 获取文件列表
+    updateList();
+});
+
+const updateList = async () => {
+	// 获取文件列表
     const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetAllChild({ filePath: file_store.resRootPath }, cb));
-    const fileList: any[] = [];
+	const fileList: any[] = [];
     for (const el of res_folder.data) {
         if (el.directory) {
-            uni.$re.unipluginLog(JSON.stringify(el));
             const typeStr: string = el.fileName.match(/\[(.*?)\]/) ? el.fileName.match(/\[(.*?)\]/)[1] : '';
             typeStr.includes('scene') ? (el.type = 2) : typeStr.includes('cad') ? (el.type = 3) : (el.type = 1);
             el.dataSetTypeStr = typeStr;
@@ -65,7 +71,7 @@ onMounted(async () => {
         fileList.push(el);
     }
     fileLocList.value = fileList;
-});
+};
 
 const getDoc = () => {
     const docObj = uni.getFileSystemManager();
@@ -106,6 +112,31 @@ const downloadAndUnzipFile = async () => {
         content: JSON.stringify(resPath),
     });
 };
+
+const unzipFile = async (item:any) => {
+	if (item.directory || item.fileType != 'zip') {
+        uni.showToast({ title: '该文件不可操作', icon: 'none' });
+        return;
+    }
+	uni.show_loading();
+	// 解压文件
+	const res_unzip = await uni.$tool.toPromise((cb: any) => uni.$re.unzipFile({ filePath: item.filePath, password: file_store.unzipPassword }, cb));
+	if (!res_unzip.data) {
+		uni.hide_loading();
+		uni.showToast({ title: '资源文件解压失败', icon: 'none' });
+		return;
+	}
+	const res_fileExist = await uni.$tool.toPromise((cb: any) => uni.$re.fileExist({ filePath: res_unzip.data }, cb));
+	if (!res_fileExist.data) {
+		uni.hide_loading();
+		uni.showToast({ title: '资源文件解压失败', icon: 'none' });
+		return;
+	}
+	
+	uni.hide_loading();
+	uni.showToast({ title: '资源文件解压成功', icon: 'none' });
+	updateList();
+}
 
 const showFileEngine = (item: any) => {
     if (!item.directory) {
@@ -169,7 +200,7 @@ const getScene = async (item: any) => {
         monomerList: monomerList,
     };
 
-    uni.$re.showOfflineEngine(engineData, (res: any) => {});
+	uni.$re.showOfflineEngine(engineData, (res: any) => {});
 };
 
 const getModels = async (item: any) => {
@@ -188,7 +219,7 @@ const getModels = async (item: any) => {
         shareDataType: item.dataSetTypeStr,
     };
 
-    uni.$re.showOfflineEngine(engineData, (res: any) => {});
+	uni.$re.showOfflineEngine(engineData, (res: any) => {});
 };
 const getCAD = async (item: any) => {
     file_store.fileName = item.fileName;
@@ -206,7 +237,7 @@ const getCAD = async (item: any) => {
         shareDataType: item.dataSetTypeStr,
     };
 
-    uni.$re.showOfflineEngine(engineData, (res: any) => {});
+	uni.$re.showOfflineEngine(engineData, (res: any) => {});
 };
 </script>
 
