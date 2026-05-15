@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-13 18:01:53
- * @LastEditTime: 2026-04-29 17:51:15
+ * @LastEditTime: 2026-05-15 17:12:07
  */
 
 
@@ -19,18 +19,19 @@ declare global {
             registerAppMsg(onCallBack: (data: any) => void): Promise<void>;
             sendMsgUniToApp(data: any): void;
 
-            selFile(data: any, onCallBack: (data: any) => void): void;
-            
-            
+
+
             showOfflineEngine(data: any, onCallBack: (data: any) => void): void;
+            safAuthorDocument(data: any, onCallBack: (data: any) => void): void;
             fileGetAllChild(data: any, onCallBack: (data: any) => void): void;
             fileGetChildBySuffix(data: any, onCallBack: (data: any) => void): void;
             fileDelAllSubFile(data: any, onCallBack: (data: any) => void): void;
             fileGetAppRootFolder(data: any, onCallBack: (data: any) => void): void;
             fileCopyFile(data: any, onCallBack: (data: any) => void): void;
+            fileCopyFolder(data: any, onCallBack: (progress: any) => void, onProgress?: (progress: any) => void): void;
             fileExist(data: any, onCallBack: (data: any) => void): void;
             fileCreateFolder(data: any, onCallBack: (data: any) => void): void;
-            unzipFile(data: any, onCallBack: (data: any) => void): void;
+            unzipFile(data: any, onCallBack: (progress: any) => void, onProgress?: (progress: any) => void): void;
             zipGetComments(data: any, onCallBack: (data: any) => void): void;
             dbQuery(data: any, onCallBack: (data: any) => void): void;
             dbTableExist(data: any, onCallBack: (data: any) => void): void;
@@ -71,10 +72,11 @@ declare global {
             downloadFile(url: any, onProgress?: (progress: number) => void): Promise<any>;
         };
         scan_code(): Promise<any>;
-        show_loading(): void;
+        show_loading(title?: string): void;
         hide_loading(): void;
         get_SystemInfo(): any;
         pop_showModal(title: any, content: any): Promise<any>;
+        pop_showToast(title: any, callback: Function | null): Promise<any>;
         file_download(title: any, holder: any): Promise<any>;
     }
 }

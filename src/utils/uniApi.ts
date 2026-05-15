@@ -7,11 +7,12 @@ interface ApiMethods {
     scan_checkPermission(): number;
     scan_authorize(): Promise<any>;
     scan_QRCode(): Promise<any>;
-    show_loading(): void;
+    show_loading(title?: string): void;
     hide_loading(): void;
     get_deviceInfo(): void;
     get_SystemInfo(): any;
     pop_showModal(title: any, content: any): Promise<any>;
+    pop_showToast(title: any, callback: Function | null): Promise<any>;
     file_download(title: any, holder: any): Promise<any>;
 }
 
@@ -113,9 +114,9 @@ const api: ApiMethods = {
     },
 
     // MARK uni-app  展示loading
-    show_loading: () => {
+    show_loading: (title: string = '加载中...') => {
         uni.showLoading({
-            title: '加载中...',
+            title: title,
         });
     },
 
@@ -131,7 +132,7 @@ const api: ApiMethods = {
                 const device_store = useDeviceStore();
                 device_store.update_deviceInfo(res);
                 const file_store = useFileStore();
-				file_store.update_rootPath(res);
+                file_store.update_rootPath(res);
             },
             fail: (err) => {
                 console.log(err);
@@ -154,6 +155,23 @@ const api: ApiMethods = {
                 content: content,
                 success: (res) => {
                     resolve(res); // 把结果返回出去
+                },
+            });
+        });
+    },
+
+    // MARK uni-app  消息提示框
+    pop_showToast: (title: any, callback: Function | null = null): Promise<any> => {
+        return new Promise((resolve) => {
+            uni.showToast({
+                title: title,
+                icon: 'none',
+                complete: () => {
+                    if (callback) {
+                        setTimeout(() => {
+                            callback();
+                        }, 400);
+                    }
                 },
             });
         });

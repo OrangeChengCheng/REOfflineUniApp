@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-14 14:22:08
- * @LastEditTime: 2026-04-29 15:44:02
+ * @LastEditTime: 2026-05-15 17:11:44
  */
 
 
@@ -13,24 +13,22 @@ interface ApiMethods {
     registerAppMsg(onCallBack: (data: any) => void): Promise<void>; // 添加一个回调参数来处理每条消息
     sendMsgUniToApp(data: any): void;
 
-    
 
 
-    selFile(data: any, onCallBack: (data: any) => void): void;
-    
-    
-    
     showOfflineEngine(data: any, onCallBack: (data: any) => void): void;
-    
+
+    safAuthorDocument(data: any, onCallBack: (data: any) => void): void;
+
     fileGetAllChild(data: any, onCallBack: (data: any) => void): void;
     fileGetChildBySuffix(data: any, onCallBack: (data: any) => void): void;
     fileDelAllSubFile(data: any, onCallBack: (data: any) => void): void;
     fileGetAppRootFolder(data: any, onCallBack: (data: any) => void): void;
     fileCopyFile(data: any, onCallBack: (data: any) => void): void;
+    fileCopyFolder(data: any, onCallBack: (progress: any) => void, onProgress?: (progress: any) => void): void;
     fileExist(data: any, onCallBack: (data: any) => void): void;
     fileCreateFolder(data: any, onCallBack: (data: any) => void): void;
-    
-    unzipFile(data: any, onCallBack: (data: any) => void): void;
+
+    unzipFile(data: any, onCallBack: (progress: any) => void, onProgress?: (progress: any) => void): void;
     zipGetComments(data: any, onCallBack: (data: any) => void): void;
 
     dbQuery(data: any, onCallBack: (data: any) => void): void;
@@ -96,14 +94,6 @@ const api: ApiMethods = {
 
 
 
-    selFile: (data: any, onCallBack: (data: any) => void) => {
-        api.getREModule()?.selFile(data, (res: any) => {
-            // 不能使用promise的resolve进行返回，要使用传递回调进行处理，不然resolve执行后函数就结束，无法再次执行resolve，需要保持函数一直在，使用参数的回调
-            onCallBack(res);
-        });
-    },
-
-
 
     // MOD-- 引擎模块 <---
     // 模型渲染
@@ -116,7 +106,18 @@ const api: ApiMethods = {
     },
 
 
-    // MOD-- 文件模块 <---
+    // MOD-- 文件模块（SAF） <---
+    // 授权指定的文件夹
+    safAuthorDocument: (data: any, onCallBack: (data: any) => void) => {
+        const module = api.getREModule();
+        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
+        module.safAuthorDocument(data, (res: any) => {
+            onCallBack(res);
+        });
+    },
+
+
+    // MOD-- 文件模块（沙盒） <---
     // 获取指定文件夹下所有文件列表
     fileGetAllChild: (data: any, onCallBack: (data: any) => void) => {
         const module = api.getREModule();
@@ -162,6 +163,21 @@ const api: ApiMethods = {
         });
     },
 
+    // 拷贝文件夹（递归，带进度）
+    fileCopyFolder: (data: any, onCallBack: (progress: any) => void, onProgress?: (progress: any) => void) => {
+        const module = api.getREModule();
+        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
+        module.fileCopyFolder(data, (res: any) => {
+            if (res.data?.status === 'progress') {
+                onProgress?.(res.data.data);
+            } else if (res.data?.status === 'success') {
+                onCallBack(res.data);
+            } else {
+                onCallBack(res);
+            }
+        });
+    },
+
     // 判断文件是否存在
     fileExist: (data: any, onCallBack: (data: any) => void) => {
         const module = api.getREModule();
@@ -181,12 +197,18 @@ const api: ApiMethods = {
     },
 
     // MOD-- 压缩包模块 <---
-    // 解压ZIP文件（支持加密）
-    unzipFile: (data: any, onCallBack: (data: any) => void) => {
+    // 解压ZIP文件（支持加密，带进度）
+    unzipFile: (data: any, onCallBack: (progress: any) => void, onProgress?: (progress: any) => void) => {
         const module = api.getREModule();
         if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
         module.unzipFile(data, (res: any) => {
-            onCallBack(res);
+            if (res.data?.status === 'progress') {
+                onProgress?.(res.data.data);
+            } else if (res.data?.status === 'success') {
+                onCallBack(res.data);
+            } else {
+                onCallBack(res);
+            }
         });
     },
 

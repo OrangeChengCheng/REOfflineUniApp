@@ -1,18 +1,14 @@
 <!--
  * @Author: Lemon C
  * @Date: 2026-01-22 10:16:05
- * @LastEditTime: 2026-04-29 17:57:35
+ * @LastEditTime: 2026-05-15 15:57:18
 -->
 <template>
     <view class="content">
         <view class="btn-area">
             <view class="btn-line">
                 <el-button type="primary" @click.stop="downloadAndUnzipFile">下载文件</el-button>
-                <el-button type="primary" @click.stop="delAllFile">删除所有文件</el-button>
-            </view>
-            <view class="btn-line">
-                <el-button type="primary" @click.stop="getDoc">获取文件对象</el-button>
-                <el-button type="primary" @click.stop="selFile">选择文件</el-button>
+                <el-button type="primary" @click.stop="authorDocument">授权外部存储</el-button>
             </view>
         </view>
         <view class="progress-area">
@@ -26,10 +22,10 @@
                     <text class="item-text">类型：{{ item.fileType }}</text>
                     <text class="item-text">文件大小：{{ item.fileSizeDesc }}</text>
                 </view>
-                <view v-if="item.directory" class="file-item-right">
+                <view v-if="item.directory && item.type != 0" class="file-item-right">
                     <el-button type="primary" @click.stop="showFileEngine(item)">查看资源</el-button>
                 </view>
-                <view v-if="!item.directory && item.fileType=='zip'" class="file-item-right">
+                <view v-if="!item.directory && item.fileType == 'zip'" class="file-item-right">
                     <el-button type="primary" @click.stop="unzipFile(item)">解压文件</el-button>
                 </view>
             </view>
@@ -38,6 +34,7 @@
 </template>
 
 <script setup lang="ts">
+import { onShow } from '@dcloudio/uni-app';
 import { ref, computed, nextTick, onMounted } from 'vue';
 import dataTool from '@/utils/dataTool';
 import { useFileStore } from '@/stores/file';
@@ -47,49 +44,46 @@ const file_store = useFileStore();
 const percentage = ref(0);
 const fileLocList = ref<any[]>([]);
 
-onMounted(async () => {
+onMounted(async () => {});
+
+onShow(() => {
     updateList();
 });
 
 const updateList = async () => {
-	// 获取文件列表
+    uni.show_loading();
+    // 获取文件列表
     const res_folder: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetAllChild({ filePath: file_store.resRootPath }, cb));
-	const fileList: any[] = [];
+    const fileList: any[] = [];
     for (const el of res_folder.data) {
         if (el.directory) {
             const typeStr: string = el.fileName.match(/\[(.*?)\]/) ? el.fileName.match(/\[(.*?)\]/)[1] : '';
-            typeStr.includes('scene') ? (el.type = 2) : typeStr.includes('cad') ? (el.type = 3) : (el.type = 1);
+            typeStr.includes('scene') ? (el.type = 2) : typeStr.includes('cad') ? (el.type = 3) : typeStr != '' ? (el.type = 1) : (el.type = 0);
             el.dataSetTypeStr = typeStr;
+            const res_folder2: any = await uni.$tool.toPromise((cb: any) => uni.$re.fileGetAllChild({ filePath: el.filePath }, cb));
+            const res_filter = res_folder2.data.filter((el2: any) => el2.fileName == 'data' || el2.fileName == 'res');
+            if (res_filter.length != 2) el.type = 0;
             el.typeStr = el.type ? (el.type == 2 ? '场景' : '单模型') : '非模型文件';
 
-            // 获取数据库文件
-            const res_dbFile: any = await uni.$tool.toPromise((cb: any) =>
-                uni.$re.fileGetChildBySuffix({ filePath: `${el.filePath}/data`, suffix: '.db' }, cb)
-            );
-            el.id = res_dbFile.data[0].fileName.replace('.db', '');
+            // 只有资源模型能够获取数据库文件
+            if (el.type != 0) {
+                const res_dbFile: any = await uni.$tool.toPromise((cb: any) =>
+                    uni.$re.fileGetChildBySuffix({ filePath: `${el.filePath}/data`, suffix: '.db' }, cb)
+                );
+                el.id = res_dbFile.data[0].fileName.replace('.db', '');
+            }
         }
         fileList.push(el);
     }
     fileLocList.value = fileList;
+    uni.hide_loading();
 };
 
-const getDoc = () => {
-    const docObj = uni.getFileSystemManager();
-    uni.showModal({
-        title: '文件对象',
-        content: JSON.stringify(docObj),
-    });
-};
-
-const delAllFile = () => {};
-
-const selFile = () => {
-    uni.$re.selFile({}, (res: any) => {
-        uni.showModal({
-            title: '获取结果',
-            content: JSON.stringify(res),
-        });
-    });
+const authorDocument = async () => {
+    const popRes = await uni.pop_showModal('提示', '使用外部存储需要进行文件授权，请选择含有资源文件的父级目录进行授权，是否使用外部存储');
+    if (popRes.confirm) {
+        uni.navigateTo({ url: `/pages/document/document` });
+    }
 };
 
 const FILE_META = {
@@ -111,33 +105,64 @@ const downloadAndUnzipFile = async () => {
         title: '下载成功',
         content: JSON.stringify(resPath),
     });
-	updateList();
+    updateList();
 };
 
-const unzipFile = async (item:any) => {
-	if (item.directory || item.fileType != 'zip') {
+const unzipFile = async (item: any) => {
+    if (item.directory || item.fileType != 'zip') {
         uni.showToast({ title: '该文件不可操作', icon: 'none' });
         return;
     }
-	uni.show_loading();
-	// 解压文件
-	const res_unzip = await uni.$tool.toPromise((cb: any) => uni.$re.unzipFile({ filePath: item.filePath, password: file_store.unzipPassword }, cb));
-	if (!res_unzip.data) {
-		uni.hide_loading();
-		uni.showToast({ title: '资源文件解压失败', icon: 'none' });
-		return;
-	}
-	const res_fileExist = await uni.$tool.toPromise((cb: any) => uni.$re.fileExist({ filePath: res_unzip.data }, cb));
-	if (!res_fileExist.data) {
-		uni.hide_loading();
-		uni.showToast({ title: '资源文件解压失败', icon: 'none' });
-		return;
-	}
-	
-	uni.hide_loading();
-	uni.showToast({ title: '资源文件解压成功', icon: 'none' });
-	updateList();
-}
+
+    const unzipFunc = async (unzipData: any, delPath: any) => {
+        uni.show_loading('解压中...');
+        if (delPath?.length) {
+            // 删除已有文件，防止重复文件出现
+            const del_res = await uni.$tool.toPromise((cb: any) => uni.$re.fileDelAllSubFile({ filePath: delPath, keepDir: true }, cb));
+            if (!del_res.data) {
+                uni.showToast({ title: '资源文件解压失败', icon: 'none' });
+                return;
+            }
+        }
+
+        // 解压文件
+        const unzip_progressFunc = (progress: any) => {
+            // uni.$re.unipluginLog(`解压进度：${progress.processed}/${progress.totalEntries}`);
+        };
+        const res_unzip = await uni.$tool.toPromise((cb: any) =>
+            uni.$re.unzipFile({ filePath: unzipData.filePath, password: file_store.unzipPassword }, cb, unzip_progressFunc)
+        );
+        if (!res_unzip.data) {
+            uni.hide_loading();
+            uni.showToast({ title: '资源文件解压失败', icon: 'none' });
+            return;
+        }
+        const res_fileExist = await uni.$tool.toPromise((cb: any) => uni.$re.fileExist({ filePath: res_unzip.data }, cb));
+        if (!res_fileExist.data) {
+            uni.hide_loading();
+            uni.showToast({ title: '资源文件解压失败', icon: 'none' });
+            return;
+        }
+
+        uni.hide_loading();
+        uni.showToast({ title: '资源文件解压成功', icon: 'none' });
+    };
+
+    const targetFolderPath = item.filePath.replace(/\.zip$/, '');
+    const res_exist = await uni.$tool.toPromise((cb: any) => uni.$re.fileExist({ filePath: targetFolderPath, keepDir: true }, cb));
+    if (res_exist.data) {
+        const popRes = await uni.pop_showModal('提示', '即将覆盖已有文件，是否继续解压');
+        if (popRes.confirm) {
+            unzipFunc(item, targetFolderPath);
+        } else if (popRes.cancel) {
+            uni.showToast({ title: '解压操作已被取消', icon: 'none' });
+            return;
+        }
+    } else {
+        unzipFunc(item, '');
+    }
+    updateList();
+};
 
 const showFileEngine = (item: any) => {
     if (!item.directory) {
@@ -201,7 +226,7 @@ const getScene = async (item: any) => {
         monomerList: monomerList,
     };
 
-	uni.$re.showOfflineEngine(engineData, (res: any) => {});
+    uni.$re.showOfflineEngine(engineData, (res: any) => {});
 };
 
 const getModels = async (item: any) => {
@@ -220,7 +245,7 @@ const getModels = async (item: any) => {
         shareDataType: item.dataSetTypeStr,
     };
 
-	uni.$re.showOfflineEngine(engineData, (res: any) => {});
+    uni.$re.showOfflineEngine(engineData, (res: any) => {});
 };
 const getCAD = async (item: any) => {
     file_store.fileName = item.fileName;
@@ -238,7 +263,7 @@ const getCAD = async (item: any) => {
         shareDataType: item.dataSetTypeStr,
     };
 
-	uni.$re.showOfflineEngine(engineData, (res: any) => {});
+    uni.$re.showOfflineEngine(engineData, (res: any) => {});
 };
 </script>
 

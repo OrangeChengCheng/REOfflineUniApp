@@ -1,7 +1,7 @@
 /*
  * @Author: Lemon C
  * @Date: 2024-09-14 10:05:14
- * @LastEditTime: 2026-04-29 17:51:04
+ * @LastEditTime: 2026-05-14 15:09:41
  */
 import config from './config'
 import reApi from './reApi'
@@ -43,15 +43,16 @@ export default {
             realEngineRender: reApi.realEngineRender,
             registerAppMsg: reApi.registerAppMsg,
             sendMsgUniToApp: reApi.sendMsgUniToApp,
-            selFile: reApi.selFile,
             
             
             showOfflineEngine: reApi.showOfflineEngine,
+            safAuthorDocument: reApi.safAuthorDocument,
             fileGetAllChild: reApi.fileGetAllChild,
             fileGetChildBySuffix: reApi.fileGetChildBySuffix,
             fileDelAllSubFile: reApi.fileDelAllSubFile,
             fileGetAppRootFolder: reApi.fileGetAppRootFolder,
             fileCopyFile: reApi.fileCopyFile,
+            fileCopyFolder: reApi.fileCopyFolder,
             fileExist: reApi.fileExist,
             fileCreateFolder: reApi.fileCreateFolder,
             unzipFile: reApi.unzipFile,
@@ -78,6 +79,7 @@ export default {
         uni.hide_loading = uniApi.hide_loading;
         uni.get_SystemInfo = uniApi.get_SystemInfo;
         uni.pop_showModal = uniApi.pop_showModal;
+        uni.pop_showToast = uniApi.pop_showToast;
         uni.file_download = uniApi.file_download;
     }
 }

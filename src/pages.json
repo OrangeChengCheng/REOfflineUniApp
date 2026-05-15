@@ -5,10 +5,16 @@
             "style": {
                 "navigationBarTitleText": "uni-app"
             }
+        },
+        {
+            "path": "pages/document/document",
+            "style": {
+                "navigationBarTitleText": "外部文件管理器"
+            }
         }
     ],
     "globalStyle": {
-        "navigationStyle": "custom",
+        "navigationStyle": "default",
         "navigationBarTextStyle": "#1D2129",
         "navigationBarTitleText": "黑洞引擎",
         "navigationBarBackgroundColor": "#FFFFFF",
