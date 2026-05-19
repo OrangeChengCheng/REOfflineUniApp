@@ -140,7 +140,7 @@ const copySafToLoc = async (item: any) => {
         uni.show_loading('复制中...');
 
         const unzip_progressFunc = (progress: any) => {
-            uni.$re.unipluginLog(`复制进度：${progress.processed}/${progress.totalFiles}`);
+            // uni.$re.unipluginLog(`复制进度：${progress.processed}/${progress.totalFiles}`);
         };
         const res_copyFolder = await uni.$tool.toPromise((cb: any) =>
             uni.$re.fileCopyFolder({ sourceFolderPath: sourceFolderPath, targetFolderPath: targetFolderPath }, cb, unzip_progressFunc)
