@@ -118,13 +118,13 @@ const unzipFile = async (item: any) => {
     if (res_exist.data) {
         const popRes = await uni.pop_showModal('提示', '即将覆盖已有文件，是否继续解压');
         if (popRes.confirm) {
-            unzipFunc(item, targetFolderPath);
+            await unzipFunc(item, targetFolderPath);
         } else if (popRes.cancel) {
             uni.showToast({ title: '解压操作已被取消', icon: 'none' });
             return;
         }
     } else {
-        unzipFunc(item, '');
+        await unzipFunc(item, '');
     }
     updateList();
 };
