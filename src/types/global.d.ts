@@ -22,7 +22,8 @@ declare global {
 
 
             showOfflineEngine(data: any, onCallBack: (data: any) => void): void;
-            safAuthorDocument(data: any, onCallBack: (data: any) => void): void;
+            externalAuthorDocument(data: any, onCallBack: (data: any) => void): void;
+            externalCheckWritable(data: any, onCallBack: (data: any) => void): void;
             fileGetAllChild(data: any, onCallBack: (data: any) => void): void;
             fileGetChildBySuffix(data: any, onCallBack: (data: any) => void): void;
             fileDelAllSubFile(data: any, onCallBack: (data: any) => void): void;

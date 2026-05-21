@@ -46,7 +46,8 @@ export default {
             
             
             showOfflineEngine: reApi.showOfflineEngine,
-            safAuthorDocument: reApi.safAuthorDocument,
+            externalAuthorDocument: reApi.externalAuthorDocument,
+            externalCheckWritable: reApi.externalCheckWritable,
             fileGetAllChild: reApi.fileGetAllChild,
             fileGetChildBySuffix: reApi.fileGetChildBySuffix,
             fileDelAllSubFile: reApi.fileDelAllSubFile,

@@ -17,7 +17,8 @@ interface ApiMethods {
 
     showOfflineEngine(data: any, onCallBack: (data: any) => void): void;
 
-    safAuthorDocument(data: any, onCallBack: (data: any) => void): void;
+    externalAuthorDocument(data: any, onCallBack: (data: any) => void): void;
+    externalCheckWritable(data: any, onCallBack: (data: any) => void): void;
 
     fileGetAllChild(data: any, onCallBack: (data: any) => void): void;
     fileGetChildBySuffix(data: any, onCallBack: (data: any) => void): void;
@@ -108,10 +109,19 @@ const api: ApiMethods = {
 
     // MOD-- 文件模块（SAF） <---
     // 授权指定的文件夹
-    safAuthorDocument: (data: any, onCallBack: (data: any) => void) => {
+    externalAuthorDocument: (data: any, onCallBack: (data: any) => void) => {
         const module = api.getREModule();
         if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
-        module.safAuthorDocument(data, (res: any) => {
+        module.externalAuthorDocument(data, (res: any) => {
+            onCallBack(res);
+        });
+    },
+
+    // 检测外部存储是否可写
+    externalCheckWritable: (data: any, onCallBack: (data: any) => void) => {
+        const module = api.getREModule();
+        if (!module) { onCallBack({ success: false, data: null, msg: "RE 模块未初始化" }); return; }
+        module.externalCheckWritable(data, (res: any) => {
             onCallBack(res);
         });
     },

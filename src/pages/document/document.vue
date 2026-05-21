@@ -39,17 +39,38 @@ onLoad((options) => {
     }
 });
 
+// 返回首页
+const backHome = () => {
+	var pages = getCurrentPages();
+    uni.navigateBack({ delta: pages.length });
+};
+
 onMounted(async () => {
     if (!folderPath.value.length) {
         // 选择授权的文件
-        const res_author: any = await uni.$tool.toPromise((cb: any) => uni.$re.safAuthorDocument({}, cb));
-        uni.showToast({ title: '授权成功', icon: 'none' });
-        resRootPath.value = res_author.data;
-        uni.$re.unipluginLog(`resRootPath: ${res_author.data}`);
+        const res_author: any = await uni.$tool.toPromise((cb: any) => uni.$re.externalAuthorDocument({}, cb));
+		const rootFolderPath = res_author.data;
+		if (rootFolderPath.length) {
+			const res_write: any = await uni.$tool.toPromise((cb: any) => uni.$re.externalCheckWritable({ rootFolderPath: rootFolderPath }, cb));
+			if (res_write.data) {
+				uni.showToast({ title: '授权成功', icon: 'none' });
+        		resRootPath.value = res_author.data;
+        		uni.$re.unipluginLog(`resRootPath: ${res_author.data}`);
+				updateList();
+			} else {
+				const popRes2 = await uni.pop_showModal('提示', '外部存储为只读状态，请检查U盘是否被格式化为NTFS或处于锁定状态。');
+				if (popRes2) {
+					backHome();
+				}
+			}
+		} else {
+			await uni.$tool.toPromise((cb: any) => uni.pop_showToast('授权失败', cb));
+			backHome();
+		}
     } else {
         resRootPath.value = folderPath.value;
+		updateList();
     }
-    updateList();
 });
 
 const updateList = async () => {
